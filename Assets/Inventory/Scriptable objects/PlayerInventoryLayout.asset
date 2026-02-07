@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 961e058044becc44da673b0ef08ea35a, type: 3}
+  m_Name: PlayerInventoryLayout
+  m_EditorClassIdentifier: 
+  mainGridWidth: 10
+  mainGridHeight: 4
+  gearSlots:
+  - slotId: 0
+    acceptsCategory: 1
+    slotWidth: 2
+    slotHeight: 2
+    sizePolicy: 1
+  - slotId: 1
+    acceptsCategory: 2
+    slotWidth: 1
+    slotHeight: 1
+    sizePolicy: 1
+  - slotId: 4
+    acceptsCategory: 5
+    slotWidth: 2
+    slotHeight: 4
+    sizePolicy: 1
+  - slotId: 5
+    acceptsCategory: 5
+    slotWidth: 2
+    slotHeight: 4
+    sizePolicy: 1
+  - slotId: 2
+    acceptsCategory: 3
+    slotWidth: 2
+    slotHeight: 2
+    sizePolicy: 1
+  - slotId: 3
+    acceptsCategory: 4
+    slotWidth: 2
+    slotHeight: 2
+    sizePolicy: 1
+  - slotId: 6
+    acceptsCategory: 6
+    slotWidth: 2
+    slotHeight: 1
+    sizePolicy: 1
+  - slotId: 7
+    acceptsCategory: 7
+    slotWidth: 1
+    slotHeight: 1
+    sizePolicy: 1
+  - slotId: 8
+    acceptsCategory: 7
+    slotWidth: 1
+    slotHeight: 1
+    sizePolicy: 1
