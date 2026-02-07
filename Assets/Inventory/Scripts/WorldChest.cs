@@ -15,21 +15,23 @@ namespace InventorySystem
         [Header("Chest Type")]
         [SerializeField] private ChestSize size = ChestSize.Small;
 
+        [Header("Config")]
+        [SerializeField] private ChestSizeConfigSO sizeConfig;
+
         public ChestSize Size => size;
         public InventoryGridModel Model { get; private set; }
 
         private void Awake()
         {
-            // Pick model size based on chest type.
-            // Make these match your UI variants exactly.
-            (int cols, int rows) = size switch
+            if (sizeConfig == null)
             {
-                ChestSize.Small => (4, 4),
-                ChestSize.Medium => (6, 4),
-                ChestSize.Large => (8, 5),
-                _ => (4, 4)
-            };
+                Debug.LogError($"WorldChest '{name}' missing ChestSizeConfigSO reference.", this);
+                // Fallback to something safe
+                Model = new InventoryGridModel(4, 4);
+                return;
+            }
 
+            sizeConfig.TryGet(size, out int cols, out int rows);
             Model = new InventoryGridModel(cols, rows);
         }
 

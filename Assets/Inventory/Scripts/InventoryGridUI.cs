@@ -32,9 +32,13 @@ namespace InventorySystem
             if (gridRect == null)
                 gridRect = (RectTransform)transform;
 
-            Model = new InventoryGridModel(columns, rows);
+            // Only auto-create if nothing else will bind a model.
+            if (Model == null)
+                Model = new InventoryGridModel(columns, rows);
+
             RedrawItems();
         }
+
 
         public bool TryScreenToCell(Vector2 screenPos, out Vector2Int cell)
         {
@@ -59,8 +63,12 @@ namespace InventorySystem
             int col = Mathf.FloorToInt(x / slotSize);
             int row = Mathf.FloorToInt((h - y) / slotSize);
 
-            if (col < 0 || col >= columns || row < 0 || row >= rows)
+            int cols = Model != null ? Model.Columns : columns;
+            int rws = Model != null ? Model.Rows : rows;
+
+            if (col < 0 || col >= cols || row < 0 || row >= rws)
                 return false;
+
 
             cell = new Vector2Int(col, row);
             return true;

@@ -9,9 +9,13 @@ namespace InventorySystem
         [Header("Views / Data")]
         [SerializeField] private PlayerInventoryView playerInventoryView;
 
-        [Header("Grids")]
+        [Header("Player Grid")]
         [SerializeField] private InventoryGridUI playerGrid;
-        [SerializeField] private InventoryGridUI chestGrid;
+
+        [Header("Chest UI Grids (variants)")]
+        [SerializeField] private InventoryGridUI chestGridSmall;
+        [SerializeField] private InventoryGridUI chestGridMedium;
+        [SerializeField] private InventoryGridUI chestGridLarge;
 
         [Header("Cursor Ghost")]
         [SerializeField] private RectTransform cursorLayer;     // UI layer under Canvas (stretched full screen)
@@ -23,18 +27,19 @@ namespace InventorySystem
         [Header("Cursor Offset (screen pixels)")]
         [SerializeField] private Vector2 cursorOffset = new Vector2(-16f, 16f);
 
-        [Header("Chest UI Grids (variants)")]
-        [SerializeField] private InventoryGridUI chestGridSmall;
-        [SerializeField] private InventoryGridUI chestGridMedium;
-        [SerializeField] private InventoryGridUI chestGridLarge;
-
-        private WorldChest _openChest;
-        private InventoryGridUI _activeChestGrid;
+        // Windows controller (cached)
         private InventoryWindowController _windows;
 
+        // Active chest session
+        private WorldChest _openChest;
+        private InventoryGridUI _activeChestGrid;
 
+        // Held item state
         private ItemInstance _heldItem;
         private InventoryGridUI _heldFrom; // null if held item came from gear
+        private Vector2Int _heldOrigin;
+        private bool _heldHasOrigin;
+        private bool _heldRotationAtPickup;
 
         // Ghost UI
         private GameObject _ghostGO;
@@ -47,29 +52,10 @@ namespace InventorySystem
         private readonly Dictionary<GearSlotId, GearSlotDefinition> _gearDefs = new();
         private readonly Dictionary<GearSlotId, ItemInstance> _equipped = new();
 
-        private Vector2Int _heldOrigin;
-        private bool _heldRotationAtPickup;
-        private bool _heldHasOrigin;
-
-        //private WorldChest _openChest;
-
         private void Awake()
         {
             CacheGearDefinitions();
             _windows = FindFirstObjectByType<InventoryWindowController>();
-
-        }
-
-        private void CacheGearDefinitions()
-        {
-            _gearDefs.Clear();
-
-            if (playerInventoryView == null || playerInventoryView.Layout == null)
-                return;
-
-            var defs = playerInventoryView.Layout.gearSlots;
-            for (int i = 0; i < defs.Length; i++)
-                _gearDefs[defs[i].slotId] = defs[i];
         }
 
         private void Update()
@@ -91,14 +77,54 @@ namespace InventorySystem
                 // Grid clicks are handled here.
                 if (TryClickGrid(playerGrid)) return;
                 if (TryClickGrid(_activeChestGrid)) return;
-
             }
 
             if (Input.GetKeyDown(KeyCode.Escape))
                 CancelHeldItemToSource();
         }
 
-        // ---------- Called by GearSlotView ----------
+        // --------------------------------------------------------------------
+        // Chest open/close
+        // --------------------------------------------------------------------
+        public void OpenChest(WorldChest chest)
+        {
+            if (chest == null)
+                return;
+
+            _openChest = chest;
+
+            _activeChestGrid = chest.Size switch
+            {
+                ChestSize.Small => chestGridSmall,
+                ChestSize.Medium => chestGridMedium,
+                ChestSize.Large => chestGridLarge,
+                _ => chestGridSmall
+            };
+
+            if (_activeChestGrid == null)
+            {
+                Debug.LogWarning($"Missing chest grid UI reference for size {chest.Size}.", this);
+                return;
+            }
+
+            if (_windows != null)
+                _windows.OpenChestUI(chest.Size);
+
+            _activeChestGrid.BindModel(chest.Model);
+        }
+
+        public void CloseChestUI()
+        {
+            _openChest = null;
+            _activeChestGrid = null;
+
+            if (_windows != null)
+                _windows.CloseChest();
+        }
+
+        // --------------------------------------------------------------------
+        // Called by GearSlotView
+        // --------------------------------------------------------------------
         public void NotifyGearHover(GearSlotView view)
         {
             _hoveredGear = view;
@@ -122,47 +148,41 @@ namespace InventorySystem
 
             var slotId = slotView.SlotId;
 
-            // Holding something -> try equip
+            // ------------------------------------------------------------
+            // Holding -> equip attempt
+            // ------------------------------------------------------------
             if (_heldItem != null)
             {
-                // Requirement: equip should use default orientation
-                _heldItem.rotated90CCW = false;
-
-                if (!CanEquipTo(slotId, _heldItem))
-                    return;
-
                 // Swap behavior if occupied
                 _equipped.TryGetValue(slotId, out var oldItem);
 
-                // Equip uses default orientation
-                bool originalRot = _heldItem.rotated90CCW;
-                _heldItem.rotated90CCW = false;
-
+                // Decide what we'll equip (whole item or 1 from stack)
                 ItemInstance itemToEquip = _heldItem;
 
-                // If it's a stack, equip one and return the rest to the pickup origin
+                // Gear equip uses default orientation
+                // (We keep remainder orientation for returning to the grid.)
                 if (_heldItem.def != null && _heldItem.def.stackable && _heldItem.amount > 1)
                 {
-                    // Equip exactly 1
+                    // Validate equip using a temporary 1-stack instance
                     itemToEquip = new ItemInstance(_heldItem.def, 1);
-                    itemToEquip.rotated90CCW = false; // always default in gear
+                    itemToEquip.rotated90CCW = false;
 
-                    // Keep the remainder
+                    if (!CanEquipTo(slotId, itemToEquip))
+                        return;
+
+                    // Take one from stack
                     _heldItem.amount -= 1;
 
-                    // Restore original rotation before placing remainder back
-                    _heldItem.rotated90CCW = _heldRotationAtPickup;
-
-                    // Return remainder back where it came from (must be a grid pickup)
+                    // Return remainder to where it came from (same rotation it had in the grid)
                     if (_heldFrom != null && _heldHasOrigin)
                     {
-                        // This SHOULD always fit because we removed it from there.
-                        // But if something else now occupies that area, TryPlace can fail.
+                        _heldItem.rotated90CCW = _heldRotationAtPickup;
+
                         bool placedBack = _heldFrom.Model.TryPlace(_heldItem, _heldOrigin, out _);
 
                         if (!placedBack)
                         {
-                            // Fallback: try find another fit in the same grid
+                            // fallback: place somewhere else in same grid
                             if (_heldFrom.Model.TryFindFirstFit(_heldItem, out var alt) &&
                                 _heldFrom.Model.TryPlace(_heldItem, alt, out _))
                             {
@@ -174,71 +194,95 @@ namespace InventorySystem
 
                         if (!placedBack)
                         {
-                            // IMPORTANT: Don't lose items. Keep remainder in hand.
-                            // Also re-apply equip preview default orientation for the ghost.
+                            // Don't lose items: keep remainder in hand
                             _heldItem.rotated90CCW = false;
                             ShowGhostForHeldItem(_heldItem, playerGrid);
                             UpdateGhostValidityTint();
-                            return; // stop equip attempt
+                            return;
                         }
 
-                        // Remainder successfully returned -> clear hand
+                        // Remainder returned successfully -> clear hand
                         ClearHeldItem();
                     }
                     else
                     {
-                        // No origin info: keep remainder in hand (optional policy)
+                        // No origin info (e.g., stack came from gear) -> keep remainder in hand
                         _heldItem.rotated90CCW = false;
                     }
-                    
                 }
                 else
                 {
-                    // Non-stack or amount==1: rotation resets on equip as you already do
-                    //_heldItem.rotated90CCW = false;
+                    // Normal equip (single item)
+                    _heldItem.rotated90CCW = false;
+
+                    if (!CanEquipTo(slotId, _heldItem))
+                        return;
+
+                    itemToEquip = _heldItem;
                 }
 
-
-
-
+                // Actually equip
                 _equipped[slotId] = itemToEquip;
 
-                // Draw equipped item on child layer (not on slot background)
                 int slotPx = playerGrid != null ? playerGrid.SlotSize : 32;
                 slotView.SetEquipped(itemToEquip, slotPx);
 
-                if (oldItem == null)
+                // If slot was occupied, put old item in hand
+                if (oldItem != null)
                 {
-                    ClearHeldItem();
+                    _heldItem = oldItem;
+                    _heldFrom = null;
+                    _heldHasOrigin = false;
+                    _heldOrigin = default;
+                    _heldRotationAtPickup = false;
+
+                    ShowGhostForHeldItem(_heldItem, playerGrid);
+                    UpdateGhostValidityTint();
                 }
                 else
                 {
-                    // Put old item into hand
-                    _heldItem = oldItem;
-                    _heldFrom = null; // now coming from gear
-                    ShowGhostForHeldItem(_heldItem, playerGrid);
-                    UpdateGhostValidityTint();
+                    // If we still had the original held item (non-stack path), clear it now
+                    if (_heldItem != null)
+                        ClearHeldItem();
                 }
 
                 return;
             }
 
-            // Empty hand -> pick up from gear if exists
+            // ------------------------------------------------------------
+            // Empty hand -> pick up from gear
+            // ------------------------------------------------------------
             if (_equipped.TryGetValue(slotId, out var equippedItem) && equippedItem != null)
             {
                 _equipped.Remove(slotId);
-
-                // Clear equipped visuals
                 slotView.ClearEquipped();
 
                 _heldItem = equippedItem;
-                _heldFrom = null; // came from gear
+                _heldFrom = null;
+                _heldHasOrigin = false;
+                _heldOrigin = default;
+                _heldRotationAtPickup = false;
+
                 ShowGhostForHeldItem(_heldItem, playerGrid);
                 UpdateGhostValidityTint();
             }
         }
 
-        // ---------- Equip rules ----------
+        // --------------------------------------------------------------------
+        // Equip rules
+        // --------------------------------------------------------------------
+        private void CacheGearDefinitions()
+        {
+            _gearDefs.Clear();
+
+            if (playerInventoryView == null || playerInventoryView.Layout == null)
+                return;
+
+            var defs = playerInventoryView.Layout.gearSlots;
+            for (int i = 0; i < defs.Length; i++)
+                _gearDefs[defs[i].slotId] = defs[i];
+        }
+
         private bool CanEquipTo(GearSlotId slotId, ItemInstance item)
         {
             if (item == null || item.def == null)
@@ -247,19 +291,18 @@ namespace InventorySystem
             if (!_gearDefs.TryGetValue(slotId, out var def))
                 return false;
 
-            // Category check
             if (item.def.EquipCategory != def.acceptsCategory)
                 return false;
 
-            // Size policy
             if (def.sizePolicy == GearSlotSizePolicy.UpTo)
                 return item.Width <= def.slotWidth && item.Height <= def.slotHeight;
 
-            // Exact policy: you said head/body/etc are consistent so we can accept without size check.
-            return true;
+            return true; // Exact policy: category is enough in your design
         }
 
-        // ---------- Ghost ----------
+        // --------------------------------------------------------------------
+        // Ghost
+        // --------------------------------------------------------------------
         private void UpdateGhostPosition()
         {
             if (_heldItem == null || _ghostRT == null)
@@ -275,11 +318,11 @@ namespace InventorySystem
 
             bool valid = false;
 
-            // Gear takes priority if hovered
             if (_hoveredGear != null)
             {
+                // Preview equip in default orientation
                 bool prevRot = _heldItem.rotated90CCW;
-                _heldItem.rotated90CCW = false; // preview equip in default orientation
+                _heldItem.rotated90CCW = false;
                 valid = CanEquipTo(_hoveredGear.SlotId, _heldItem);
                 _heldItem.rotated90CCW = prevRot;
             }
@@ -291,7 +334,6 @@ namespace InventorySystem
             {
                 valid = _activeChestGrid.Model.CanPlace(_heldItem, cellC);
             }
-
 
             _ghostIconImage.color = valid ? Color.green : Color.red;
         }
@@ -309,15 +351,12 @@ namespace InventorySystem
                 _ghostGO = Instantiate(ghostIconPrefab, cursorLayer);
                 _ghostRT = _ghostGO.GetComponent<RectTransform>();
 
-                // Must have child named "itemIcon" with Image
                 _ghostIconImage = _ghostGO.transform.Find("itemIcon")?.GetComponent<Image>();
                 _ghostIconRT = _ghostIconImage != null ? (RectTransform)_ghostIconImage.transform : null;
 
-                // Ensure ghost never blocks clicks
                 if (_ghostIconImage != null)
                     _ghostIconImage.raycastTarget = false;
 
-                // Container never rotates
                 if (_ghostRT != null)
                     _ghostRT.localEulerAngles = Vector3.zero;
             }
@@ -325,8 +364,9 @@ namespace InventorySystem
             if (_ghostGO != null)
                 _ghostGO.SetActive(true);
 
-            if (_ghostIconImage != null)
+            if (_ghostIconImage != null && item != null && item.def != null)
                 _ghostIconImage.sprite = item.def.icon;
+
 
             RefreshGhostForHeldItem(grid);
         }
@@ -336,17 +376,14 @@ namespace InventorySystem
             if (_heldItem == null || _ghostRT == null || _ghostIconRT == null || grid == null)
                 return;
 
-            // Container should never rotate
             _ghostRT.localEulerAngles = Vector3.zero;
 
             float containerW = _heldItem.Width * grid.SlotSize;
             float containerH = _heldItem.Height * grid.SlotSize;
 
-            // Container size = footprint (axis-aligned)
             _ghostRT.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, containerW);
             _ghostRT.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, containerH);
 
-            // Rotate only the child icon, swap its rect size when rotated
             _ghostIconRT.anchorMin = _ghostIconRT.anchorMax = new Vector2(0.5f, 0.5f);
             _ghostIconRT.pivot = new Vector2(0.5f, 0.5f);
             _ghostIconRT.anchoredPosition = Vector2.zero;
@@ -370,12 +407,12 @@ namespace InventorySystem
             _heldItem = null;
             _heldFrom = null;
 
-            if (_ghostGO != null)
-                _ghostGO.SetActive(false);
-
             _heldHasOrigin = false;
             _heldOrigin = default;
             _heldRotationAtPickup = false;
+
+            if (_ghostGO != null)
+                _ghostGO.SetActive(false);
         }
 
         private void CancelHeldItemToSource()
@@ -383,7 +420,6 @@ namespace InventorySystem
             if (_heldItem == null)
                 return;
 
-            // If it came from a grid, return it there
             if (_heldFrom != null)
             {
                 if (_heldFrom.Model.TryFindFirstFit(_heldItem, out var o) &&
@@ -396,11 +432,13 @@ namespace InventorySystem
                 return;
             }
 
-            // If it came from gear, just clear for now (later you can return it to the slot or drop it)
+            // Came from gear (or unknown): drop policy later. For now just clear.
             ClearHeldItem();
         }
 
-        // ---------- Grid click handling ----------
+        // --------------------------------------------------------------------
+        // Grid click handling
+        // --------------------------------------------------------------------
         private bool TryClickGrid(InventoryGridUI grid)
         {
             if (grid == null)
@@ -409,10 +447,10 @@ namespace InventorySystem
             if (!grid.TryScreenToCell(Input.mousePosition, out var cell))
                 return false;
 
-            // Holding -> try place
+            // Holding -> merge or place
             if (_heldItem != null)
             {
-                // If clicking an existing stack of the same item, merge into it
+                // Merge stack if clicking same stackable item
                 if (grid.Model.TryGetPlacementAt(cell, out _, out _, out var targetItem) &&
                     targetItem != null &&
                     _heldItem.def != null &&
@@ -429,22 +467,21 @@ namespace InventorySystem
                         grid.RedrawItems();
 
                         if (_heldItem.amount <= 0)
-                            ClearHeldItem(); // fully merged
+                            ClearHeldItem();
 
                         return true;
                     }
                 }
-
 
                 if (grid.Model.TryPlace(_heldItem, cell, out _))
                 {
                     grid.RedrawItems();
                     ClearHeldItem();
                 }
+
                 return true;
             }
 
-            // Not holding -> pick up
             // Not holding -> pick up
             if (grid.Model.TryPickUpAt(cell, out var picked, out var origin))
             {
@@ -453,26 +490,25 @@ namespace InventorySystem
 
                 _heldOrigin = origin;
                 _heldHasOrigin = true;
-
-                _heldRotationAtPickup = _heldItem.rotated90CCW;
+                _heldRotationAtPickup = _heldItem != null && _heldItem.rotated90CCW;
 
                 grid.RedrawItems();
                 ShowGhostForHeldItem(_heldItem, grid);
                 UpdateGhostValidityTint();
             }
 
-
             return true;
         }
 
-        // ---------- World pickup entry point ----------
+        // --------------------------------------------------------------------
+        // World pickup entry point
+        // --------------------------------------------------------------------
         public bool TryAutoAddToPlayer(ItemDefinitionSO def, int amount = 1)
         {
             if (playerGrid == null || playerGrid.Model == null || def == null)
                 return false;
 
             bool ok = playerGrid.Model.TryAddItem(def, amount, out int added);
-
             playerGrid.RedrawItems();
 
             if (!ok || added < amount)
@@ -483,52 +519,5 @@ namespace InventorySystem
 
             return true;
         }
-
-        
-
-        public void CloseChestUI()
-        {
-            _openChest = null;
-
-            var windows = FindFirstObjectByType<InventoryWindowController>();
-            if (windows != null)
-                windows.CloseChest();
-        }
-
-        public void OpenChest(WorldChest chest)
-        {
-            if (chest == null)
-                return;
-
-            // If we were holding an item from the currently open chest grid,
-            // you can decide what to do later. For now, just leave as-is.
-            // (Optional: cancel-held-item here.)
-
-            _openChest = chest;
-
-            // Pick correct UI grid by size
-            _activeChestGrid = chest.Size switch
-            {
-                ChestSize.Small => chestGridSmall,
-                ChestSize.Medium => chestGridMedium,
-                ChestSize.Large => chestGridLarge,
-                _ => chestGridSmall
-            };
-
-            if (_activeChestGrid == null)
-            {
-                Debug.LogWarning($"No chest grid UI assigned for chest size {chest.Size}.", this);
-                return;
-            }
-
-            // Open the correct UI panel (closes any previously open chest UI)
-            if (_windows != null)
-                _windows.OpenChestUI(chest.Size);
-
-            // Bind UI to this chest's MODEL (contents preserved in the world chest)
-            _activeChestGrid.BindModel(chest.Model);
-        }
-
-
     }
 }
