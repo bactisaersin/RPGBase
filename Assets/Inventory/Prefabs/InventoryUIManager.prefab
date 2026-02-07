@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7553146445414632363}
   - component: {fileID: 7234484289463544709}
+  - component: {fileID: 4708360628579012063}
   m_Layer: 0
   m_Name: InventoryUIManager
   m_TagString: Untagged
@@ -48,7 +49,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 78e803c51d8d664449da68b2bb920cbc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  playerInventoryView: {fileID: 0}
   playerGrid: {fileID: 0}
   chestGrid: {fileID: 0}
   cursorLayer: {fileID: 0}
   ghostIconPrefab: {fileID: 9101776047544923783, guid: 0336a3d296e74a2408df2587f3eb4894, type: 3}
+  rotateKey: 114
+  cursorOffset: {x: -16, y: 16}
+  chestGridSmall: {fileID: 0}
+  chestGridMedium: {fileID: 0}
+  chestGridLarge: {fileID: 0}
+--- !u!114 &4708360628579012063
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 532425182648756288}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e3f91d05a594d6f42aba4e56137f8020, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerPanel: {fileID: 0}
+  chestSmallPanel: {fileID: 0}
+  chestMediumPanel: {fileID: 0}
+  chestLargePanel: {fileID: 0}
+  closePlayerButton: {fileID: 0}
+  closeChestButton: {fileID: 0}
+  togglePlayerKey: 105

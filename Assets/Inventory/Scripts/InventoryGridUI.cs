@@ -158,5 +158,12 @@ namespace InventorySystem
 
 
         }
+
+        public void BindModel(InventoryGridModel model)
+        {
+            Model = model;
+            RedrawItems();
+        }
+
     }
 }

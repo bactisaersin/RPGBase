@@ -23,6 +23,16 @@ namespace InventorySystem
         [Header("Cursor Offset (screen pixels)")]
         [SerializeField] private Vector2 cursorOffset = new Vector2(-16f, 16f);
 
+        [Header("Chest UI Grids (variants)")]
+        [SerializeField] private InventoryGridUI chestGridSmall;
+        [SerializeField] private InventoryGridUI chestGridMedium;
+        [SerializeField] private InventoryGridUI chestGridLarge;
+
+        private WorldChest _openChest;
+        private InventoryGridUI _activeChestGrid;
+        private InventoryWindowController _windows;
+
+
         private ItemInstance _heldItem;
         private InventoryGridUI _heldFrom; // null if held item came from gear
 
@@ -41,9 +51,13 @@ namespace InventorySystem
         private bool _heldRotationAtPickup;
         private bool _heldHasOrigin;
 
+        //private WorldChest _openChest;
+
         private void Awake()
         {
             CacheGearDefinitions();
+            _windows = FindFirstObjectByType<InventoryWindowController>();
+
         }
 
         private void CacheGearDefinitions()
@@ -76,7 +90,8 @@ namespace InventorySystem
                 // Gear clicks are handled by GearSlotView (UI events).
                 // Grid clicks are handled here.
                 if (TryClickGrid(playerGrid)) return;
-                if (TryClickGrid(chestGrid)) return;
+                if (TryClickGrid(_activeChestGrid)) return;
+
             }
 
             if (Input.GetKeyDown(KeyCode.Escape))
@@ -272,10 +287,11 @@ namespace InventorySystem
             {
                 valid = playerGrid.Model.CanPlace(_heldItem, cellP);
             }
-            else if (chestGrid != null && chestGrid.TryScreenToCell(Input.mousePosition, out var cellC))
+            else if (_activeChestGrid != null && _activeChestGrid.TryScreenToCell(Input.mousePosition, out var cellC))
             {
-                valid = chestGrid.Model.CanPlace(_heldItem, cellC);
+                valid = _activeChestGrid.Model.CanPlace(_heldItem, cellC);
             }
+
 
             _ghostIconImage.color = valid ? Color.green : Color.red;
         }
@@ -467,6 +483,52 @@ namespace InventorySystem
 
             return true;
         }
+
+        
+
+        public void CloseChestUI()
+        {
+            _openChest = null;
+
+            var windows = FindFirstObjectByType<InventoryWindowController>();
+            if (windows != null)
+                windows.CloseChest();
+        }
+
+        public void OpenChest(WorldChest chest)
+        {
+            if (chest == null)
+                return;
+
+            // If we were holding an item from the currently open chest grid,
+            // you can decide what to do later. For now, just leave as-is.
+            // (Optional: cancel-held-item here.)
+
+            _openChest = chest;
+
+            // Pick correct UI grid by size
+            _activeChestGrid = chest.Size switch
+            {
+                ChestSize.Small => chestGridSmall,
+                ChestSize.Medium => chestGridMedium,
+                ChestSize.Large => chestGridLarge,
+                _ => chestGridSmall
+            };
+
+            if (_activeChestGrid == null)
+            {
+                Debug.LogWarning($"No chest grid UI assigned for chest size {chest.Size}.", this);
+                return;
+            }
+
+            // Open the correct UI panel (closes any previously open chest UI)
+            if (_windows != null)
+                _windows.OpenChestUI(chest.Size);
+
+            // Bind UI to this chest's MODEL (contents preserved in the world chest)
+            _activeChestGrid.BindModel(chest.Model);
+        }
+
 
     }
 }
