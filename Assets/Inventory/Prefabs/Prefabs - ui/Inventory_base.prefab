@@ -317,7 +317,6 @@ GameObject:
   - component: {fileID: 7787820167900605947}
   - component: {fileID: 4613966000844704089}
   - component: {fileID: 3845438703011619845}
-  - component: {fileID: 6543233162224779045}
   - component: {fileID: 7206527025608966508}
   m_Layer: 0
   m_Name: BtnClose
@@ -397,19 +396,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7196509673846819563}
   m_CullTransparentMesh: 1
---- !u!114 &6543233162224779045
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7196509673846819563}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9790a1be7e235304da5e9c1faacfa44a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  windows: {fileID: 0}
 --- !u!114 &7206527025608966508
 MonoBehaviour:
   m_ObjectHideFlags: 0
