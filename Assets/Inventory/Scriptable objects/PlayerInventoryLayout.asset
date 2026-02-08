@@ -22,8 +22,8 @@ MonoBehaviour:
     sizePolicy: 1
   - slotId: 1
     acceptsCategory: 2
-    slotWidth: 1
-    slotHeight: 1
+    slotWidth: 2
+    slotHeight: 3
     sizePolicy: 1
   - slotId: 4
     acceptsCategory: 5

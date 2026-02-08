@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f673b6c63409a494e86899ad232a8072, type: 3}
+  m_Name: Sword
+  m_EditorClassIdentifier: 
+  index: 0
+  displayName: Sword
+  description: A powerful sword.
+  itemClass: 0
+  subclass: 0
+  price: 10
+  stackable: 1
+  stackMax: 5
+  width: 1
+  height: 4
+  icon: {fileID: 21300000, guid: efe1e2449afce794bb5a527d8da4483b, type: 3}
+  worldSprite: {fileID: 21300000, guid: 94ebdbd94704bd548bbe2de5d42a06ab, type: 3}
+  worldPrefab: {fileID: 0}
+  damage: 10
+  defense: 1
+  range: 0
+  forWeapon: 

@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f673b6c63409a494e86899ad232a8072, type: 3}
+  m_Name: Helmet
+  m_EditorClassIdentifier: 
+  index: 0
+  displayName: Helmet
+  description: A good helmet .
+  itemClass: 1
+  subclass: 3
+  price: 10
+  stackable: 1
+  stackMax: 5
+  width: 2
+  height: 2
+  icon: {fileID: 21300000, guid: e36dcc67cbbaf3141a0d7b6784e577d9, type: 3}
+  worldSprite: {fileID: 21300000, guid: c651651218a09ca4096ecbbac79776b2, type: 3}
+  worldPrefab: {fileID: 0}
+  damage: 0
+  defense: 3
+  range: 0
+  forWeapon: 

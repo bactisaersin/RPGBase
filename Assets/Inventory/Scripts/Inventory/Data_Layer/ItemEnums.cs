@@ -19,7 +19,7 @@ namespace InventorySystem
         WearHead,
         WearBody,
         WearHands,
-        WearFing,
+        WearRing,
         WearWaist,
         WearFeet,
 

@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f673b6c63409a494e86899ad232a8072, type: 3}
+  m_Name: Boots
+  m_EditorClassIdentifier: 
+  index: 0
+  displayName: Boots
+  description: A good pair of boots.
+  itemClass: 1
+  subclass: 8
+  price: 10
+  stackable: 1
+  stackMax: 5
+  width: 2
+  height: 2
+  icon: {fileID: 21300000, guid: 56086114d12612a4483fc4a84d47bf8e, type: 3}
+  worldSprite: {fileID: 21300000, guid: f3dade2e4a666dd4f8cd092f52812a0f, type: 3}
+  worldPrefab: {fileID: 0}
+  damage: 0
+  defense: 3
+  range: 0
+  forWeapon: 
