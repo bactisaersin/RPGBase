@@ -789,10 +789,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2111169307}
     m_Modifications:
-    - target: {fileID: 1956399411127327309, guid: bcb1dd55aff61a5429f8e76a2bd62360, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 1977954558841577680, guid: bcb1dd55aff61a5429f8e76a2bd62360, type: 3}
       propertyPath: cursorLayer
       value: 

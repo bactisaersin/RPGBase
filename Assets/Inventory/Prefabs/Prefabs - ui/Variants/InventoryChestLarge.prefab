@@ -18,11 +18,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3323187865230059883, guid: 1046a226883d8794bafd707b59bead4a, type: 3}
       propertyPath: m_SizeDelta.x
-      value: 320
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3323187865230059883, guid: 1046a226883d8794bafd707b59bead4a, type: 3}
       propertyPath: m_SizeDelta.y
-      value: 320
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4032740430145903340, guid: 1046a226883d8794bafd707b59bead4a, type: 3}
       propertyPath: m_Pivot.x
