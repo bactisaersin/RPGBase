@@ -22,9 +22,6 @@ namespace InventorySystem
         {
             if (closePlayerButton != null)
                 closePlayerButton.onClick.AddListener(ClosePlayer);
-
-            //if (playerPanel != null) playerPanel.SetActive(false);
-               // CloseChest();
         }
 
         private void Update()

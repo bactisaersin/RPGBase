@@ -52,11 +52,22 @@ namespace InventorySystem
         private readonly Dictionary<GearSlotId, GearSlotDefinition> _gearDefs = new();
         private readonly Dictionary<GearSlotId, ItemInstance> _equipped = new();
 
+        private InventoryGridModel _playerModel;
+
+
         private void Awake()
         {
             CacheGearDefinitions();
             _windows = FindFirstObjectByType<InventoryWindowController>();
+
+            // Create player model even if UI is closed
+            _playerModel = new InventoryGridModel(10, 4);
+
+            // Bind it immediately (works even if the panel is inactive)
+            if (playerGrid != null)
+                playerGrid.BindModel(_playerModel);
         }
+
 
         private void Update()
         {
@@ -505,11 +516,14 @@ namespace InventorySystem
         // --------------------------------------------------------------------
         public bool TryAutoAddToPlayer(ItemDefinitionSO def, int amount = 1)
         {
-            if (playerGrid == null || playerGrid.Model == null || def == null)
+            if (_playerModel == null || def == null)
                 return false;
 
-            bool ok = playerGrid.Model.TryAddItem(def, amount, out int added);
-            playerGrid.RedrawItems();
+            bool ok = _playerModel.TryAddItem(def, amount, out int added);
+
+            // redraw only if UI exists (it can be inactive, still fine to call)
+            if (playerGrid != null)
+                playerGrid.RedrawItems();
 
             if (!ok || added < amount)
             {
@@ -519,5 +533,6 @@ namespace InventorySystem
 
             return true;
         }
+
     }
 }
