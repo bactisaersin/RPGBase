@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Bow
   m_EditorClassIdentifier: 
   index: 0
-  displayName: Sword
-  description: A powerful sword.
+  displayName: Bow
+  description: A powerful bow.
   itemClass: 0
   subclass: 1
   price: 10

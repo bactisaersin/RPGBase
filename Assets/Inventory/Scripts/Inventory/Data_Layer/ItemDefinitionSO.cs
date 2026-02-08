@@ -65,7 +65,14 @@ namespace InventorySystem
             get
             {
                 if (itemClass == ItemClass.Weapon)
-                    return ItemCategory.Weapon;
+                {
+                    switch (subclass)
+                    {
+                        case ItemSubclass.WeaponMelee: return ItemCategory.WeaponMelee;
+                        case ItemSubclass.WeaponRanged: return ItemCategory.WeaponRanged;
+                        default: return ItemCategory.None; // ammo etc.
+                    }
+                }
 
                 if (itemClass == ItemClass.Wear)
                 {
@@ -81,5 +88,6 @@ namespace InventorySystem
                 return ItemCategory.None;
             }
         }
+
     }
 }

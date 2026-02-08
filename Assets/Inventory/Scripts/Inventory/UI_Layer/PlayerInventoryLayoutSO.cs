@@ -10,8 +10,10 @@ namespace InventorySystem
         Body,
         Hands,
         Feet,
-        WeaponL,
-        WeaponR,
+        WeaponL_Melee,
+        WeaponR_Melee,
+        WeaponL_Ranged,
+        WeaponR_Ranged,
         Waist,
         RingL,
         RingR
@@ -25,7 +27,8 @@ namespace InventorySystem
         Body,
         Hands,
         Feet,
-        Weapon,
+        WeaponMelee,
+        WeaponRanged,
         Waist,
         Ring
     }
@@ -63,6 +66,7 @@ namespace InventorySystem
 
         [Header("Gear Slots")]
         public GearSlotDefinition[] gearSlots = Array.Empty<GearSlotDefinition>();
+
 
 #if UNITY_EDITOR
         private void OnValidate()

@@ -35,6 +35,16 @@ MonoBehaviour:
     slotWidth: 2
     slotHeight: 4
     sizePolicy: 1
+  - slotId: 6
+    acceptsCategory: 6
+    slotWidth: 2
+    slotHeight: 4
+    sizePolicy: 1
+  - slotId: 7
+    acceptsCategory: 6
+    slotWidth: 2
+    slotHeight: 4
+    sizePolicy: 1
   - slotId: 2
     acceptsCategory: 3
     slotWidth: 2
@@ -45,18 +55,18 @@ MonoBehaviour:
     slotWidth: 2
     slotHeight: 2
     sizePolicy: 1
-  - slotId: 6
-    acceptsCategory: 6
+  - slotId: 8
+    acceptsCategory: 7
     slotWidth: 2
     slotHeight: 1
     sizePolicy: 1
-  - slotId: 7
-    acceptsCategory: 7
+  - slotId: 9
+    acceptsCategory: 8
     slotWidth: 1
     slotHeight: 1
     sizePolicy: 1
-  - slotId: 8
-    acceptsCategory: 7
+  - slotId: 10
+    acceptsCategory: 8
     slotWidth: 1
     slotHeight: 1
     sizePolicy: 1

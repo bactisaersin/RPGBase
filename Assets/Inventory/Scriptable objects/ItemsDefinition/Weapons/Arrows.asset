@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Arrows
   description: Some good arrows.
   itemClass: 0
-  subclass: 2
+  subclass: 1
   price: 10
   stackable: 1
   stackMax: 5
