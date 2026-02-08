@@ -28,6 +28,15 @@ namespace InventorySystem
         [Header("Cursor Offset (screen pixels)")]
         [SerializeField] private Vector2 cursorOffset = new Vector2(-16f, 16f);
 
+        [Header("Currency")]
+        [SerializeField] private PlayerGoldView goldView;
+
+        [SerializeField] private int startingGold = 0;
+
+        private int _gold;
+        public int Gold => _gold;
+
+
         // Windows controller (cached)
         private InventoryWindowController _windows;
 
@@ -67,6 +76,11 @@ namespace InventorySystem
             // Bind it immediately (works even if the panel is inactive)
             if (playerGrid != null)
                 playerGrid.BindModel(_playerModel);
+
+            _gold = Mathf.Max(0, startingGold);
+            if (goldView != null)
+                goldView.SetGold(_gold);
+
         }
 
 
@@ -537,6 +551,20 @@ namespace InventorySystem
 
             return true;
         }
+
+        public void AddGold(int amount)
+        {
+            if (amount <= 0)
+                return;
+
+            _gold += amount;
+
+            if (goldView != null)
+                goldView.SetGold(_gold);
+
+            Debug.Log($"Gold: +{amount} (Total {_gold})");
+        }
+
 
     }
 }

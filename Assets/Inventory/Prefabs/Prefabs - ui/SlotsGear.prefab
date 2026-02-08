@@ -1595,7 +1595,7 @@ GameObject:
   - component: {fileID: 3623754611934197050}
   - component: {fileID: 5656786039938429138}
   m_Layer: 0
-  m_Name: InventoryPlayerSlotsGear
+  m_Name: SlotsGear
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
