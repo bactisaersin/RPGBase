@@ -19,8 +19,7 @@ namespace InventorySystem
         [SerializeField] private PlayerInventoryLayoutSO layout;
 
         [Header("UI References")]
-        [Tooltip("Parent that contains exactly width*height slot objects (your 40 slot Images).")]
-        [SerializeField] private Transform mainGridSlotsRoot;
+        
 
         [Tooltip("Parent that contains your gear slot objects (SlotHead, SlotBody, etc.).")]
         [SerializeField] private Transform gearSlotsRoot;
@@ -29,11 +28,9 @@ namespace InventorySystem
         [SerializeField] private bool logValidationWarnings = true;
 
         // Bound results (no gameplay logic yet)
-        private Image[] _mainGridSlots = Array.Empty<Image>();
         private readonly Dictionary<GearSlotId, GearSlotView> _gearSlotViewsById = new();
 
         public PlayerInventoryLayoutSO Layout => layout;
-        public IReadOnlyList<Image> MainGridSlots => _mainGridSlots;
         public IReadOnlyDictionary<GearSlotId, GearSlotView> GearSlotViews => _gearSlotViewsById;
 
         private void Awake()
@@ -45,8 +42,9 @@ namespace InventorySystem
         private void OnValidate()
         {
             // Keep OnValidate safe and light.
-            if (layout == null || mainGridSlotsRoot == null || gearSlotsRoot == null)
+            if (layout == null || gearSlotsRoot == null)
                 return;
+
 
             // Optional: auto-bind while editing for faster iteration
             if (!Application.isPlaying)
@@ -58,35 +56,15 @@ namespace InventorySystem
         {
             _gearSlotViewsById.Clear();
 
-            if (layout == null || mainGridSlotsRoot == null || gearSlotsRoot == null)
-            {
-                _mainGridSlots = Array.Empty<Image>();
+            if (layout == null || gearSlotsRoot == null)
                 return;
-            }
 
-            BindMainGridSlots();
             BindGearSlots();
             ValidateAgainstLayout();
+
         }
 
-        private void BindMainGridSlots()
-        {
-            int childCount = mainGridSlotsRoot.childCount;
-            _mainGridSlots = new Image[childCount];
-
-            for (int i = 0; i < childCount; i++)
-            {
-                var child = mainGridSlotsRoot.GetChild(i);
-
-                // Slot object should have an Image (your slot background)
-                if (!child.TryGetComponent<Image>(out var img))
-                {
-                    img = child.GetComponentInChildren<Image>(true);
-                }
-
-                _mainGridSlots[i] = img;
-            }
-        }
+        
 
         private void BindGearSlots()
         {
@@ -114,17 +92,6 @@ namespace InventorySystem
 
         private void ValidateAgainstLayout()
         {
-            // Main grid slot count
-            int expected = layout.mainGridWidth * layout.mainGridHeight;
-            if (_mainGridSlots.Length != expected && logValidationWarnings)
-            {
-                Debug.LogWarning(
-                    $"Main grid slot count mismatch on '{name}'. " +
-                    $"Layout expects {layout.mainGridWidth}x{layout.mainGridHeight} = {expected}, " +
-                    $"but '{mainGridSlotsRoot.name}' has {_mainGridSlots.Length} children.",
-                    this);
-            }
-
             // Gear slots required by layout
             for (int i = 0; i < layout.gearSlots.Length; i++)
             {
