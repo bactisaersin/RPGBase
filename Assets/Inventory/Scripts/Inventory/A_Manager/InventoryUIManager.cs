@@ -12,10 +12,11 @@ namespace InventorySystem
         [Header("Player Grid")]
         [SerializeField] private InventoryGridUI playerGrid;
 
-        [Header("Chest UI Grids (variants)")]
-        [SerializeField] private InventoryGridUI chestGridSmall;
-        [SerializeField] private InventoryGridUI chestGridMedium;
-        [SerializeField] private InventoryGridUI chestGridLarge;
+        [Header("Chest UI")]
+        [SerializeField] private GameObject chestPanelRoot;   // InventoryChest root panel
+        [SerializeField] private ChestWindowView chestWindowView;
+        [SerializeField] private InventoryGridUI chestGrid;   // InventoryGridUI on SlotsGrid
+
 
         [Header("Cursor Ghost")]
         [SerializeField] private RectTransform cursorLayer;     // UI layer under Canvas (stretched full screen)
@@ -102,36 +103,39 @@ namespace InventorySystem
             if (chest == null)
                 return;
 
+            // Optional: close previous chest UI (contents are in the model, so they stay)
             _openChest = chest;
 
-            _activeChestGrid = chest.Size switch
-            {
-                ChestSize.Small => chestGridSmall,
-                ChestSize.Medium => chestGridMedium,
-                ChestSize.Large => chestGridLarge,
-                _ => chestGridSmall
-            };
+            if (chestPanelRoot != null)
+                chestPanelRoot.SetActive(true);
 
-            if (_activeChestGrid == null)
+            if (chestGrid == null)
             {
-                Debug.LogWarning($"Missing chest grid UI reference for size {chest.Size}.", this);
+                Debug.LogWarning("InventoryUIManager: chestGrid is not assigned.", this);
                 return;
             }
 
-            if (_windows != null)
-                _windows.OpenChestUI(chest.Size);
+            // Resize chest window to this chest's size
+            if (chestWindowView != null)
+                chestWindowView.ApplySize(chest.Columns, chest.Rows, chestGrid.SlotSize);
 
-            _activeChestGrid.BindModel(chest.Model);
+            // Bind model (this sets Columns/Rows via model, not inspector)
+            chestGrid.BindModel(chest.Model);
+            chestGrid.RedrawItems();
+
+            _activeChestGrid = chestGrid;
         }
+
 
         public void CloseChestUI()
         {
             _openChest = null;
             _activeChestGrid = null;
 
-            if (_windows != null)
-                _windows.CloseChest();
+            if (chestPanelRoot != null)
+                chestPanelRoot.SetActive(false);
         }
+
 
         // --------------------------------------------------------------------
         // Called by GearSlotView

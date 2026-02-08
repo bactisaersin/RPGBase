@@ -7,21 +7,28 @@ namespace InventorySystem
     {
         [Header("Panels")]
         [SerializeField] private GameObject playerPanel;
-
-        [SerializeField] private GameObject chestSmallPanel;
-        [SerializeField] private GameObject chestMediumPanel;
-        [SerializeField] private GameObject chestLargePanel;
+        [SerializeField] private GameObject chestPanel;
 
         [Header("Buttons")]
         [SerializeField] private Button closePlayerButton;
+        [SerializeField] private Button closeChestButton;
 
         [Header("Input")]
         [SerializeField] private KeyCode togglePlayerKey = KeyCode.I;
 
+        private InventoryUIManager _mgr;
+
         private void Awake()
         {
+            _mgr = FindFirstObjectByType<InventoryUIManager>();
+
             if (closePlayerButton != null)
                 closePlayerButton.onClick.AddListener(ClosePlayer);
+
+            // IMPORTANT: closing chest should notify the manager too,
+            // so it clears _activeChestGrid / open chest reference.
+            if (closeChestButton != null)
+                closeChestButton.onClick.AddListener(CloseChest);
         }
 
         private void Update()
@@ -30,6 +37,7 @@ namespace InventorySystem
                 TogglePlayer();
         }
 
+        // ---------------- Player ----------------
         public void TogglePlayer()
         {
             if (playerPanel == null) return;
@@ -42,29 +50,21 @@ namespace InventorySystem
             playerPanel.SetActive(false);
         }
 
-        public void OpenChestUI(ChestSize size)
+        // ---------------- Chest ----------------
+        public void OpenChest()
         {
-            CloseChest();
-
-            switch (size)
-            {
-                case ChestSize.Small:
-                    if (chestSmallPanel != null) chestSmallPanel.SetActive(true);
-                    break;
-                case ChestSize.Medium:
-                    if (chestMediumPanel != null) chestMediumPanel.SetActive(true);
-                    break;
-                case ChestSize.Large:
-                    if (chestLargePanel != null) chestLargePanel.SetActive(true);
-                    break;
-            }
+            if (chestPanel == null) return;
+            chestPanel.SetActive(true);
         }
 
         public void CloseChest()
         {
-            if (chestSmallPanel != null) chestSmallPanel.SetActive(false);
-            if (chestMediumPanel != null) chestMediumPanel.SetActive(false);
-            if (chestLargePanel != null) chestLargePanel.SetActive(false);
+            if (chestPanel != null)
+                chestPanel.SetActive(false);
+
+            // Let manager clear its active chest references.
+            if (_mgr != null)
+                _mgr.CloseChestUI();
         }
     }
 }

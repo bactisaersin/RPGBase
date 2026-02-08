@@ -2,37 +2,24 @@ using UnityEngine;
 
 namespace InventorySystem
 {
-    public enum ChestSize
-    {
-        Small,
-        Medium,
-        Large
-    }
-
     [RequireComponent(typeof(Collider2D))]
     public sealed class WorldChest : MonoBehaviour
     {
-        [Header("Chest Type")]
-        [SerializeField] private ChestSize size = ChestSize.Small;
+        [Header("Chest Size (grid cells)")]
+        [Min(1)] [SerializeField] private int columns = 4;
+        [Min(1)] [SerializeField] private int rows = 4;
 
-        [Header("Config")]
-        [SerializeField] private ChestSizeConfigSO sizeConfig;
+        public int Columns => columns;
+        public int Rows => rows;
 
-        public ChestSize Size => size;
         public InventoryGridModel Model { get; private set; }
 
         private void Awake()
         {
-            if (sizeConfig == null)
-            {
-                Debug.LogError($"WorldChest '{name}' missing ChestSizeConfigSO reference.", this);
-                // Fallback to something safe
-                Model = new InventoryGridModel(4, 4);
-                return;
-            }
+            columns = Mathf.Max(1, columns);
+            rows = Mathf.Max(1, rows);
 
-            sizeConfig.TryGet(size, out int cols, out int rows);
-            Model = new InventoryGridModel(cols, rows);
+            Model = new InventoryGridModel(columns, rows);
         }
 
         private void OnMouseDown()
