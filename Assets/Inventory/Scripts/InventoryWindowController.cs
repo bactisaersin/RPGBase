@@ -14,7 +14,6 @@ namespace InventorySystem
 
         [Header("Buttons")]
         [SerializeField] private Button closePlayerButton;
-        [SerializeField] private Button closeChestButton;
 
         [Header("Input")]
         [SerializeField] private KeyCode togglePlayerKey = KeyCode.I;
@@ -24,11 +23,8 @@ namespace InventorySystem
             if (closePlayerButton != null)
                 closePlayerButton.onClick.AddListener(ClosePlayer);
 
-            if (closeChestButton != null)
-                closeChestButton.onClick.AddListener(CloseChest);
-
-            if (playerPanel != null) playerPanel.SetActive(false);
-            CloseChest();
+            //if (playerPanel != null) playerPanel.SetActive(false);
+               // CloseChest();
         }
 
         private void Update()

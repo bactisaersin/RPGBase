@@ -41,7 +41,7 @@ namespace InventorySystem
             var mgr = FindFirstObjectByType<InventoryUIManager>();
             if (mgr == null || itemDef == null)
                 return;
-
+           
             bool added = mgr.TryAutoAddToPlayer(itemDef, amount);
             if (added)
                 Destroy(gameObject);

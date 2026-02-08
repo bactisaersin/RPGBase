@@ -51,14 +51,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerInventoryView: {fileID: 0}
   playerGrid: {fileID: 0}
-  chestGrid: {fileID: 0}
+  chestGridSmall: {fileID: 0}
+  chestGridMedium: {fileID: 0}
+  chestGridLarge: {fileID: 0}
   cursorLayer: {fileID: 0}
   ghostIconPrefab: {fileID: 9101776047544923783, guid: 0336a3d296e74a2408df2587f3eb4894, type: 3}
   rotateKey: 114
   cursorOffset: {x: -16, y: 16}
-  chestGridSmall: {fileID: 0}
-  chestGridMedium: {fileID: 0}
-  chestGridLarge: {fileID: 0}
 --- !u!114 &4708360628579012063
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -76,5 +75,4 @@ MonoBehaviour:
   chestMediumPanel: {fileID: 0}
   chestLargePanel: {fileID: 0}
   closePlayerButton: {fileID: 0}
-  closeChestButton: {fileID: 0}
   togglePlayerKey: 105
