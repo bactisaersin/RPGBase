@@ -13,8 +13,16 @@ PrefabInstance:
       value: W_Chest_L
       objectReference: {fileID: 0}
     - target: {fileID: 4064610768322800335, guid: 926c56a5b7b451c41a328ebb7fd0a452, type: 3}
+      propertyPath: rows
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 4064610768322800335, guid: 926c56a5b7b451c41a328ebb7fd0a452, type: 3}
       propertyPath: size
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4064610768322800335, guid: 926c56a5b7b451c41a328ebb7fd0a452, type: 3}
+      propertyPath: columns
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 4184170990474030659, guid: 926c56a5b7b451c41a328ebb7fd0a452, type: 3}
       propertyPath: m_LocalPosition.x

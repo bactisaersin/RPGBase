@@ -218,14 +218,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 2476447878167647692, guid: fdceb589a57b9204a99ebca43357f30c, type: 3}
-      propertyPath: rows
-      value: 6
-      objectReference: {fileID: 0}
-    - target: {fileID: 2476447878167647692, guid: fdceb589a57b9204a99ebca43357f30c, type: 3}
-      propertyPath: columns
-      value: 6
-      objectReference: {fileID: 0}
     - target: {fileID: 2942994396016279304, guid: fdceb589a57b9204a99ebca43357f30c, type: 3}
       propertyPath: m_Name
       value: W_Chest_M
@@ -777,14 +769,6 @@ PrefabInstance:
     - target: {fileID: 2316909133252170048, guid: 482ea04efcb92e244b873df188ef64e2, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2476447878167647692, guid: 482ea04efcb92e244b873df188ef64e2, type: 3}
-      propertyPath: rows
-      value: 10
-      objectReference: {fileID: 0}
-    - target: {fileID: 2476447878167647692, guid: 482ea04efcb92e244b873df188ef64e2, type: 3}
-      propertyPath: columns
-      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 2942994396016279304, guid: 482ea04efcb92e244b873df188ef64e2, type: 3}
       propertyPath: m_Name
