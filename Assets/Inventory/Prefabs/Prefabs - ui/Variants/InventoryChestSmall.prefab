@@ -88,9 +88,37 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6364937461102407579, guid: 1046a226883d8794bafd707b59bead4a, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6364937461102407579, guid: 1046a226883d8794bafd707b59bead4a, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6364937461102407579, guid: 1046a226883d8794bafd707b59bead4a, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6364937461102407579, guid: 1046a226883d8794bafd707b59bead4a, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6364937461102407579, guid: 1046a226883d8794bafd707b59bead4a, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6364937461102407579, guid: 1046a226883d8794bafd707b59bead4a, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6765732526940106793, guid: 1046a226883d8794bafd707b59bead4a, type: 3}
       propertyPath: m_Name
       value: InventoryChestSmall
+      objectReference: {fileID: 0}
+    - target: {fileID: 6765732526940106793, guid: 1046a226883d8794bafd707b59bead4a, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

@@ -85,7 +85,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3871048964815194554}
   m_Layer: 0
-  m_Name: CursorGhostIcon
+  m_Name: ItemIconGhost
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
