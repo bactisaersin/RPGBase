@@ -287,13 +287,20 @@ namespace InventorySystem
                     // If held item came from vendor, charge now (only after it's valid)
                     if (_heldFromVendor)
                     {
-                        if (!SpendGold(_heldVendorPrice))
+                        int price = _heldVendorPrice;
+
+                        // Safety: if you forgot to set it somewhere, derive it from the item
+                        if (price <= 0 && _heldItem != null && _heldItem.def != null)
+                            price = Mathf.Max(0, _heldItem.def.price) * Mathf.Max(1, _heldItem.amount);
+
+                        if (!SpendGold(price))
                         {
                             ReturnHeldVendorItemToVendor();
                             ClearHeldItem();
                             return;
                         }
                     }
+
 
                     itemToEquip = _heldItem;
                 }
@@ -817,6 +824,8 @@ namespace InventorySystem
                     // Take one
                     _heldItem = new ItemInstance(targetItem.def, 1);
                     _heldItem.rotated90CCW = false; // vendor items default orientation (your policy)
+
+                    _heldVendorPrice = Mathf.Max(0, _heldItem.def.price) * _heldItem.amount;
 
                     // Reduce vendor stack
                     targetItem.amount -= 1;
