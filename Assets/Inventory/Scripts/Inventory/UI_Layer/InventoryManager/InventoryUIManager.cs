@@ -21,6 +21,10 @@ namespace InventorySystem
         [SerializeField] private InventoryWindowController windows;
         [SerializeField] private VendorWindowView vendorWindowView;
 
+        [Header("Vendor Selling")]
+        [SerializeField, Range(0f, 1f)] private float vendorSellMultiplier = 0.5f;
+
+
         [Header("Cursor Ghost")]
         [SerializeField] private RectTransform cursorLayer;     // UI layer under Canvas (stretched full screen)
         [SerializeField] private GameObject ghostIconPrefab;    // Prefab with child "itemIcon" (Image)
@@ -415,6 +419,16 @@ namespace InventorySystem
                 valid = _activeChestGrid.Model.CanPlace(_heldItem, cellC);
             }
 
+            else if (!_heldFromVendor &&
+                 vendorWindowView != null &&
+                 vendorWindowView.IsOpen &&
+                 vendorWindowView.GridUI != null &&
+                 vendorWindowView.GridUI.TryScreenToCell(Input.mousePosition, out var cellV))
+            {
+                valid = vendorWindowView.GridUI.Model.CanPlace(_heldItem, cellV);
+            }
+
+
             _ghostIconImage.color = valid ? Color.green : Color.red;
         }
 
@@ -581,6 +595,34 @@ namespace InventorySystem
 
                     return true;
                 }
+
+                // SELLING: if vendor UI is open and user clicks vendor grid while holding a non-vendor item
+                if (!_heldFromVendor &&
+                    vendorWindowView != null &&
+                    vendorWindowView.IsOpen &&
+                    grid == vendorWindowView.GridUI)
+                {
+                    // place into vendor grid first (must fit)
+                    if (!grid.Model.CanPlace(_heldItem, cell))
+                        return true;
+
+                    if (grid.Model.TryPlace(_heldItem, cell, out _))
+                    {
+                        // vendor pays you
+                        int sellValue = GetSellValue(_heldItem);
+                        if (sellValue > 0)
+                            AddGold(sellValue);
+
+                        // redraw vendor grid
+                        grid.RedrawItems();
+
+                        // clear hand
+                        ClearHeldItem();
+                    }
+
+                    return true;
+                }
+
 
                 // Normal held item (not from vendor): merge stacks if clicking same stackable item
                 if (grid.Model.TryGetPlacementAt(cell, out _, out _, out var targetItem) &&
@@ -789,6 +831,13 @@ namespace InventorySystem
                 vendorWindowView.RefreshActiveTab();
         }
 
+        private int GetSellValue(ItemInstance item)
+        {
+            if (item == null || item.def == null) return 0;
+            float baseValue = Mathf.Max(0, item.def.price);
+            int amount = Mathf.Max(1, item.amount);
+            return Mathf.FloorToInt(baseValue * vendorSellMultiplier) * amount;
+        }
 
     }
 }
