@@ -19,7 +19,7 @@ MonoBehaviour:
   subclass: 0
   price: 10
   stackable: 1
-  stackMax: 5
+  stackMax: 2
   width: 1
   height: 3
   icon: {fileID: 21300000, guid: 491289e0c60ba0b4ca2dadea59d0ce39, type: 3}

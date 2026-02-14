@@ -602,26 +602,86 @@ namespace InventorySystem
                     vendorWindowView.IsOpen &&
                     grid == vendorWindowView.GridUI)
                 {
-                    // place into vendor grid first (must fit)
-                    if (!grid.Model.CanPlace(_heldItem, cell))
+                    // Must fit the SOLD item at the clicked position.
+                    // We sell ONE unit, so we test placement using a 1-stack instance if stackable.
+                    ItemInstance itemToSell = _heldItem;
+
+                    bool isStack = _heldItem.def != null && _heldItem.def.stackable && _heldItem.amount > 1;
+
+                    if (isStack)
+                    {
+                        itemToSell = new ItemInstance(_heldItem.def, 1);
+                        itemToSell.rotated90CCW = false; // optional: vendor items default orientation
+                    }
+
+                    if (!grid.Model.CanPlace(itemToSell, cell))
                         return true;
 
+                    // If we're selling one from a stack, return remainder back to pickup origin
+                    if (isStack)
+                    {
+                        int remainderAmount = _heldItem.amount - 1;
+
+                        // Build remainder item
+                        var remainder = new ItemInstance(_heldItem.def, remainderAmount);
+                        remainder.rotated90CCW = _heldRotationAtPickup;
+
+                        bool returned = false;
+
+                        // Return remainder to where it came from (prefer exact origin)
+                        if (_heldFrom != null && _heldHasOrigin)
+                        {
+                            returned = _heldFrom.Model.TryPlace(remainder, _heldOrigin, out _);
+
+                            if (!returned)
+                            {
+                                // fallback: place somewhere else in the same grid
+                                if (_heldFrom.Model.TryFindFirstFit(remainder, out var alt) &&
+                                    _heldFrom.Model.TryPlace(remainder, alt, out _))
+                                {
+                                    returned = true;
+                                }
+                            }
+
+                            _heldFrom.RedrawItems();
+                        }
+
+                        // If we couldn't return the remainder safely, do NOT complete the sale.
+                        // Keep holding the original stack (don’t lose items).
+                        if (!returned)
+                        {
+                            Debug.LogWarning("Could not return remainder stack to source; sale canceled.");
+                            return true;
+                        }
+
+                        // Now place the sold single item into vendor grid
+                        if (grid.Model.TryPlace(itemToSell, cell, out _))
+                        {
+                            int sellValue = GetSellValuePerUnit(itemToSell.def);
+                            if (sellValue > 0)
+                                AddGold(sellValue);
+
+                            grid.RedrawItems();
+                            ClearHeldItem(); // remainder already returned
+                        }
+
+                        return true;
+                    }
+
+                    // Non-stack (or stack amount == 1): sell whole held item (one item anyway)
                     if (grid.Model.TryPlace(_heldItem, cell, out _))
                     {
-                        // vendor pays you
-                        int sellValue = GetSellValue(_heldItem);
+                        int sellValue = GetSellValuePerUnit(_heldItem.def);
                         if (sellValue > 0)
                             AddGold(sellValue);
 
-                        // redraw vendor grid
                         grid.RedrawItems();
-
-                        // clear hand
                         ClearHeldItem();
                     }
 
                     return true;
                 }
+
 
 
                 // Normal held item (not from vendor): merge stacks if clicking same stackable item
@@ -838,6 +898,14 @@ namespace InventorySystem
             int amount = Mathf.Max(1, item.amount);
             return Mathf.FloorToInt(baseValue * vendorSellMultiplier) * amount;
         }
+
+        private int GetSellValuePerUnit(ItemDefinitionSO def)
+        {
+            if (def == null) return 0;
+            float baseValue = Mathf.Max(0, def.price);
+            return Mathf.FloorToInt(baseValue * vendorSellMultiplier);
+        }
+
 
     }
 }
