@@ -152,5 +152,11 @@ namespace InventorySystem
                 if (show) countText.text = item.amount.ToString();
             }
         }
+        public void SetDimensions(int newColumns, int newRows)
+        {
+            columns = Mathf.Max(1, newColumns);
+            rows = Mathf.Max(1, newRows);
+        }
+
     }
 }

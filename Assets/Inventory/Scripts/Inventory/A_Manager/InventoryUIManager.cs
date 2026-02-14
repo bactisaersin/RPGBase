@@ -17,7 +17,6 @@ namespace InventorySystem
         [SerializeField] private ChestWindowView chestWindowView;
         [SerializeField] private InventoryGridUI chestGrid;   // InventoryGridUI on SlotsGrid
 
-
         [Header("Cursor Ghost")]
         [SerializeField] private RectTransform cursorLayer;     // UI layer under Canvas (stretched full screen)
         [SerializeField] private GameObject ghostIconPrefab;    // Prefab with child "itemIcon" (Image)
@@ -32,6 +31,13 @@ namespace InventorySystem
         [SerializeField] private PlayerGoldView goldView;
 
         [SerializeField] private int startingGold = 0;
+
+        [Header("Vendor UI")]
+        [SerializeField] private InventoryWindowController windows;
+        [SerializeField] private VendorWindowView vendorWindowView;
+        private WorldVendor _openVendor;
+
+
 
         private int _gold;
         public int Gold => _gold;
@@ -565,6 +571,36 @@ namespace InventorySystem
             Debug.Log($"Gold: +{amount} (Total {_gold})");
         }
 
+        public void OpenVendor(WorldVendor vendor)
+        {
+            if (vendor == null || vendorWindowView == null)
+                return;
+
+            // Optional policy: close chest when opening vendor
+            CloseChestUI();
+
+            _openVendor = vendor;
+
+            // Show panel (visibility lives in WindowController)
+            if (windows != null)
+                windows.OpenVendor();
+
+            // Bind + build tabs + resize content
+            vendorWindowView.Open(vendor);
+        }
+
+        public void CloseVendorUI()
+        {
+            _openVendor = null;
+
+            // Clear held item policy: optional (choose one)
+            // A) Keep holding item even if vendor closes
+            // B) Cancel held item back to source
+            // For now, do nothing.
+
+            if (vendorWindowView != null)
+                vendorWindowView.Close();
+        }
 
     }
 }

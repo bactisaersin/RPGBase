@@ -7,28 +7,33 @@ namespace InventorySystem
     {
         [Header("Panels")]
         [SerializeField] private GameObject playerPanel;
-        [SerializeField] private GameObject chestPanel;
+        [SerializeField] private GameObject chestPanel;   // if you have a single dynamic chest panel
+        [SerializeField] private GameObject vendorPanel;
 
         [Header("Buttons")]
         [SerializeField] private Button closePlayerButton;
         [SerializeField] private Button closeChestButton;
+        [SerializeField] private Button closeVendorButton;
 
         [Header("Input")]
         [SerializeField] private KeyCode togglePlayerKey = KeyCode.I;
 
-        private InventoryUIManager _mgr;
+        [Header("Refs")]
+        [SerializeField] private InventoryUIManager uiManager;
 
         private void Awake()
         {
-            _mgr = FindFirstObjectByType<InventoryUIManager>();
+            if (uiManager == null)
+                uiManager = FindFirstObjectByType<InventoryUIManager>();
 
             if (closePlayerButton != null)
                 closePlayerButton.onClick.AddListener(ClosePlayer);
 
-            // IMPORTANT: closing chest should notify the manager too,
-            // so it clears _activeChestGrid / open chest reference.
             if (closeChestButton != null)
                 closeChestButton.onClick.AddListener(CloseChest);
+
+            if (closeVendorButton != null)
+                closeVendorButton.onClick.AddListener(CloseVendor);
         }
 
         private void Update()
@@ -42,6 +47,12 @@ namespace InventorySystem
         {
             if (playerPanel == null) return;
             playerPanel.SetActive(!playerPanel.activeSelf);
+        }
+
+        public void OpenPlayer()
+        {
+            if (playerPanel == null) return;
+            playerPanel.SetActive(true);
         }
 
         public void ClosePlayer()
@@ -59,12 +70,29 @@ namespace InventorySystem
 
         public void CloseChest()
         {
-            if (chestPanel != null)
-                chestPanel.SetActive(false);
+            // clear state first (important)
+            if (uiManager != null)
+                uiManager.CloseChestUI();
 
-            // Let manager clear its active chest references.
-            if (_mgr != null)
-                _mgr.CloseChestUI();
+            if (chestPanel == null) return;
+            chestPanel.SetActive(false);
+        }
+
+        // ---------------- Vendor ----------------
+        public void OpenVendor()
+        {
+            if (vendorPanel == null) return;
+            vendorPanel.SetActive(true);
+        }
+
+        public void CloseVendor()
+        {
+            // clear state first (important)
+            if (uiManager != null)
+                uiManager.CloseVendorUI();
+
+            if (vendorPanel == null) return;
+            vendorPanel.SetActive(false);
         }
     }
 }

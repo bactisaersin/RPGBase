@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7338dcf90cae4ff419683ff847109e7b, type: 3}
+  m_Name: VendorCatalog_Blacksmith
+  m_EditorClassIdentifier: 
+  tabs:
+  - tabName: Weapons
+    items:
+    - item: {fileID: 11400000, guid: fad0a49649844b74aa5c004a12dd4d91, type: 2}
+      weight: 1
+    - item: {fileID: 11400000, guid: 52453d81e791e32419b489f2032e812b, type: 2}
+      weight: 1
+  - tabName: Wear
+    items:
+    - item: {fileID: 11400000, guid: 62d2836657f85a24f8da60a65dc94a84, type: 2}
+      weight: 1
+  - tabName: Misc
+    items:
+    - item: {fileID: 11400000, guid: e8e72ad0517e4eb4e818091bda967b39, type: 2}
+      weight: 1
+    - item: {fileID: 11400000, guid: 1eee079e3737a0b4cb36cfa287c7bd11, type: 2}
+      weight: 1
