@@ -20,6 +20,12 @@ namespace InventorySystem
         private WorldVendor _boundVendor;
         private int _activeTabIndex;
 
+        public bool IsOpen => _boundVendor != null;
+        public InventoryGridUI GridUI => vendorGrid;
+        public int ActiveTabIndex => _activeTabIndex;
+
+        public InventoryGridUI VendorGrid => vendorGrid;
+
         private void Awake()
         {
             if (panelRoot == null)
@@ -114,6 +120,24 @@ namespace InventorySystem
 
             vendorGrid.BindModel(model);
             // (Optional) update tab visuals later (active/inactive colors)
+        }
+
+        public void SetHiddenPlacements(HashSet<int> hidden)
+        {
+            if (vendorGrid != null)
+                vendorGrid.SetHiddenPlacements(hidden);
+        }
+
+        public void RefreshActiveTab()
+        {
+            if (_boundVendor == null || vendorGrid == null)
+                return;
+
+            // Ensure UI grid uses correct dimensions
+            vendorGrid.SetDimensions(_boundVendor.Columns, _boundVendor.Rows);
+
+            vendorGrid.BindModel(_boundVendor.GetTabModel(_activeTabIndex));
+            vendorGrid.RedrawItems();
         }
     }
 }

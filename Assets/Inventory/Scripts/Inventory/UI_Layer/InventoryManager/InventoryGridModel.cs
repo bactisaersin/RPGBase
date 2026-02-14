@@ -15,8 +15,8 @@ namespace InventorySystem
 
         private struct CellData
         {
-            public int placementId;          // 0 = empty
-            public Vector2Int origin;        // top-left origin for the placement
+            public int placementId;     // 0 = empty
+            public Vector2Int origin;   // top-left origin for the placement
         }
 
         private sealed class Placement
@@ -34,6 +34,54 @@ namespace InventorySystem
             _cells = new CellData[Columns, Rows];
         }
 
+        // ---------------- NEW: placement queries ----------------
+        public bool TryGetPlacementIdAt(Vector2Int cell, out int placementId)
+        {
+            placementId = 0;
+            if (!IsInBounds(cell))
+                return false;
+
+            placementId = _cells[cell.x, cell.y].placementId;
+            return placementId != 0;
+        }
+
+        public bool TryGetPlacementById(int placementId, out Vector2Int origin, out Vector2Int size, out ItemInstance item)
+        {
+            origin = default;
+            size = default;
+            item = null;
+
+            if (placementId == 0)
+                return false;
+
+            if (!_placements.TryGetValue(placementId, out var p))
+                return false;
+
+            origin = p.origin;
+            size = p.size;
+            item = p.item;
+            return true;
+        }
+
+        // ---------------- NEW: remove by ID (for vendor commit) ----------------
+        public bool TryRemovePlacement(int placementId, out ItemInstance removedItem)
+        {
+            removedItem = null;
+
+            if (placementId == 0)
+                return false;
+
+            if (!_placements.TryGetValue(placementId, out var p))
+                return false;
+
+            ClearCells(placementId, p.origin, p.size);
+            _placements.Remove(placementId);
+
+            removedItem = p.item;
+            return true;
+        }
+
+        // ---------------- EXISTING: stacks add ----------------
         public bool TryAddItem(ItemDefinitionSO def, int amount, out int added)
         {
             added = 0;
@@ -73,12 +121,10 @@ namespace InventorySystem
                 int stackAmount = def.stackable ? Mathf.Min(def.stackMax, remaining) : remaining;
 
                 var newInst = new ItemInstance(def, stackAmount);
-
-                // stackables are usually not rotated; keep default orientation
                 newInst.rotated90CCW = false;
 
                 if (!TryFindFirstFit(newInst, out var origin))
-                    return added > 0; // partial success possible
+                    return added > 0;
 
                 if (!TryPlace(newInst, origin, out _))
                     return added > 0;
@@ -89,7 +135,6 @@ namespace InventorySystem
 
             return true;
         }
-
 
         public bool TryFindFirstFit(ItemInstance item, out Vector2Int origin)
         {
@@ -106,6 +151,7 @@ namespace InventorySystem
                         return true;
                     }
                 }
+
             return false;
         }
 
@@ -153,9 +199,8 @@ namespace InventorySystem
             _placements.Remove(id);
 
             picked = placement.item;
-            return picked != null;
+            return true;
         }
-
 
         public bool TryGetPlacementAt(Vector2Int cell, out Vector2Int origin, out Vector2Int size, out ItemInstance item)
         {
@@ -179,12 +224,13 @@ namespace InventorySystem
             return true;
         }
 
-        public IEnumerable<(Vector2Int origin, Vector2Int size, ItemInstance item)> EnumeratePlacements()
+        // ---------------- NEW: enumerate WITH ID (for hiding vendor items) ----------------
+        public IEnumerable<(int placementId, Vector2Int origin, Vector2Int size, ItemInstance item)> EnumeratePlacementsWithId()
         {
             foreach (var kvp in _placements)
             {
                 var p = kvp.Value;
-                yield return (p.origin, p.size, p.item);
+                yield return (p.id, p.origin, p.size, p.item);
             }
         }
 
@@ -229,10 +275,9 @@ namespace InventorySystem
             for (int y = 0; y < size.y; y++)
                 for (int x = 0; x < size.x; x++)
                 {
-                    var cx = origin.x + x;
-                    var cy = origin.y + y;
+                    int cx = origin.x + x;
+                    int cy = origin.y + y;
 
-                    // Only clear cells that still belong to this placement.
                     if (_cells[cx, cy].placementId == id)
                     {
                         _cells[cx, cy].placementId = 0;

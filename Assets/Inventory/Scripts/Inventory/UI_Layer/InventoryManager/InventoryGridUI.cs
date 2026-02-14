@@ -26,6 +26,18 @@ namespace InventorySystem
         private readonly List<GameObject> _spawnedIcons = new();
         private bool _inited;
 
+        private readonly HashSet<int> _hiddenPlacementIds = new();
+
+        public void SetHiddenPlacements(HashSet<int> hiddenIds)
+        {
+            _hiddenPlacementIds.Clear();
+            if (hiddenIds != null)
+                foreach (var id in hiddenIds)
+                    _hiddenPlacementIds.Add(id);
+
+            RedrawItems();
+        }
+
         private void EnsureInit()
         {
             if (_inited) return;
@@ -89,8 +101,14 @@ namespace InventorySystem
             if (itemsLayer == null || itemIconPrefab == null || Model == null)
                 return;
 
-            foreach (var p in Model.EnumeratePlacements())
+            foreach (var p in Model.EnumeratePlacementsWithId())
+            {
+                if (_hiddenPlacementIds.Contains(p.placementId))
+                    continue;
+
                 SpawnIcon(p.origin, p.size, p.item);
+            }
+
         }
 
         private void SpawnIcon(Vector2Int origin, Vector2Int size, ItemInstance item)
