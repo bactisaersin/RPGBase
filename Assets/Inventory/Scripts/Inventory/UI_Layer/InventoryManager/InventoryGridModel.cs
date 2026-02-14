@@ -285,5 +285,54 @@ namespace InventorySystem
                     }
                 }
         }
+
+        public bool TryTakeAmountAt(Vector2Int cell, int amountToTake, out ItemInstance taken, out Vector2Int origin)
+        {
+            taken = null;
+            origin = default;
+
+            if (amountToTake <= 0)
+                return false;
+
+            if (!IsInBounds(cell))
+                return false;
+
+            int id = _cells[cell.x, cell.y].placementId;
+            if (id == 0)
+                return false;
+
+            if (!_placements.TryGetValue(id, out var placement) || placement.item == null || placement.item.def == null)
+                return false;
+
+            origin = placement.origin;
+
+            var item = placement.item;
+
+            // Non-stackable OR only 1 in stack -> pick up whole placement (existing behavior)
+            if (!item.def.stackable || item.amount <= amountToTake || item.amount <= 1)
+            {
+                // Remove placement entirely
+                ClearCells(id, placement.origin, placement.size);
+                _placements.Remove(id);
+
+                taken = item;
+                return true;
+            }
+
+            // Stackable: take only part, keep placement
+            int take = Mathf.Clamp(amountToTake, 1, item.amount - 1);
+
+            // Create taken instance
+            taken = new ItemInstance(item.def, take)
+            {
+                rotated90CCW = item.rotated90CCW
+            };
+
+            // Decrement in-place
+            item.amount -= take;
+
+            return true;
+        }
+
     }
 }
