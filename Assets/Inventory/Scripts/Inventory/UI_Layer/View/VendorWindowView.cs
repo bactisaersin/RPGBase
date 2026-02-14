@@ -13,6 +13,11 @@ namespace InventorySystem
         [SerializeField] private Button tabButtonTemplate;
         [SerializeField] private InventoryGridUI vendorGrid;
 
+        [Header("Tab Visuals")]
+        [SerializeField] private Color tabActiveColor = Color.white;
+        [SerializeField] private Color tabInactiveColor = new Color(0.65f, 0.65f, 0.65f, 1f);
+
+
         [Header("Optional sizing")]
         [SerializeField] private ChestWindowView sizeView; // reuse your sizing script (it just resizes rects)
 
@@ -25,6 +30,16 @@ namespace InventorySystem
         public int ActiveTabIndex => _activeTabIndex;
 
         public InventoryGridUI VendorGrid => vendorGrid;
+
+        private struct TabUI
+        {
+            public Button button;
+            public Image buttonImage;            // TabButtonImage child
+            public TextMeshProUGUI title;        // TabButtonTitle child
+        }
+        private readonly List<TabUI> _tabs = new();
+
+
 
         private void Awake()
         {
@@ -83,26 +98,24 @@ namespace InventorySystem
                 var btn = Instantiate(tabButtonTemplate, tabBarRoot);
                 btn.gameObject.SetActive(true);
 
-                // Set label (TMP)
-                var label = btn.GetComponentInChildren<TextMeshProUGUI>(true);
-                if (label != null)
-                    label.text = _boundVendor.GetTabName(tabIndex);
+                var img = btn.transform.Find("TabButtonImage")?.GetComponent<Image>();
+                var title = btn.transform.Find("TabButtonTitle")?.GetComponent<TextMeshProUGUI>();
+
+                if (title != null)
+                    title.text = _boundVendor.GetTabName(tabIndex);
 
                 btn.onClick.AddListener(() => ShowTab(tabIndex));
 
-                _spawnedTabs.Add(btn);
+                _tabs.Add(new TabUI
+                {
+                    button = btn,
+                    buttonImage = img,
+                    title = title
+                });
             }
         }
 
-        private void ClearSpawnedTabs()
-        {
-            for (int i = 0; i < _spawnedTabs.Count; i++)
-            {
-                if (_spawnedTabs[i] != null)
-                    Destroy(_spawnedTabs[i].gameObject);
-            }
-            _spawnedTabs.Clear();
-        }
+        
 
         private void ShowTab(int tabIndex)
         {
@@ -120,6 +133,9 @@ namespace InventorySystem
 
             vendorGrid.BindModel(model);
             // (Optional) update tab visuals later (active/inactive colors)
+
+            UpdateTabVisuals();
+
         }
 
         public void SetHiddenPlacements(HashSet<int> hidden)
@@ -128,16 +144,43 @@ namespace InventorySystem
                 vendorGrid.SetHiddenPlacements(hidden);
         }
 
+        
+
         public void RefreshActiveTab()
         {
-            if (_boundVendor == null || vendorGrid == null)
+            if (!IsOpen || vendorGrid == null || _boundVendor == null)
                 return;
-
-            // Ensure UI grid uses correct dimensions
-            vendorGrid.SetDimensions(_boundVendor.Columns, _boundVendor.Rows);
 
             vendorGrid.BindModel(_boundVendor.GetTabModel(_activeTabIndex));
             vendorGrid.RedrawItems();
         }
+
+        private void UpdateTabVisuals()
+        {
+            for (int i = 0; i < _tabs.Count; i++)
+            {
+                bool active = (i == _activeTabIndex);
+                var c = active ? tabActiveColor : tabInactiveColor;
+
+                if (_tabs[i].buttonImage != null)
+                    _tabs[i].buttonImage.color = c;
+
+                if (_tabs[i].title != null)
+                    _tabs[i].title.color = c;
+            }
+        }
+
+
+        private void ClearSpawnedTabs()
+        {
+            for (int i = 0; i < _tabs.Count; i++)
+            {
+                if (_tabs[i].button != null)
+                    Destroy(_tabs[i].button.gameObject);
+            }
+            _tabs.Clear();
+        }
+
+
     }
 }

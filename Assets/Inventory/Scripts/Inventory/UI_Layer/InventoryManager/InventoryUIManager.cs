@@ -69,7 +69,7 @@ namespace InventorySystem
         private int _heldVendorTabIndex;
         private Vector2Int _heldVendorOrigin;
         private bool _heldVendorHasOrigin;
-        private bool _heldVendorRotationAtPickup;
+        //private bool _heldVendorRotationAtPickup;
         private int _heldVendorPrice;
 
 
@@ -287,7 +287,7 @@ namespace InventorySystem
                     // If held item came from vendor, charge now (only after it's valid)
                     if (_heldFromVendor)
                     {
-                        if (!TrySpendGold(_heldVendorPrice))
+                        if (!SpendGold(_heldVendorPrice))
                         {
                             ReturnHeldVendorItemToVendor();
                             ClearHeldItem();
@@ -503,6 +503,13 @@ namespace InventorySystem
             _heldOrigin = default;
             _heldRotationAtPickup = false;
 
+            _heldFromVendor = false;
+            _heldVendor = null;
+            _heldVendorTabIndex = 0;
+            _heldVendorHasOrigin = false;
+            _heldVendorOrigin = default;
+
+
             if (_ghostGO != null)
                 _ghostGO.SetActive(false);
 
@@ -510,33 +517,7 @@ namespace InventorySystem
 
         }
 
-        private void CancelHeldItemToSource()
-        {
-            if (_heldFromVendor)
-            {
-                ReturnHeldVendorItemToVendor();
-                ClearHeldItem();
-                return;
-            }
 
-            if (_heldItem == null)
-                return;
-
-            if (_heldFrom != null)
-            {
-                if (_heldFrom.Model.TryFindFirstFit(_heldItem, out var o) &&
-                    _heldFrom.Model.TryPlace(_heldItem, o, out _))
-                {
-                    _heldFrom.RedrawItems();
-                }
-
-                ClearHeldItem();
-                return;
-            }
-
-            // Came from gear (or unknown): drop policy later. For now just clear.
-            ClearHeldItem();
-        }
 
         // --------------------------------------------------------------------
         // Grid click handling
@@ -549,162 +530,264 @@ namespace InventorySystem
             if (!grid.TryScreenToCell(Input.mousePosition, out var cell))
                 return false;
 
-            bool isVendorGrid =
-                vendorWindowView != null &&
-                vendorWindowView.IsOpen &&
-                vendorWindowView.GridUI == grid;
+            bool vendorOpen = vendorWindowView != null && vendorWindowView.IsOpen;
+            bool isVendorGrid = vendorOpen && vendorWindowView.GridUI == grid;
 
-            // ------------------------------------------------------------
-            // HOLDING -> place / buy / sell / merge
-            // ------------------------------------------------------------
+            // --------------------------------------------------------------------
+            // HOLDING SOMETHING
+            // --------------------------------------------------------------------
             if (_heldItem != null)
             {
-                // -----------------------------------------
-                // BUYING: held item came from vendor
-                // -----------------------------------------
+                // -------------------------
+                // CASE A) Holding from VENDOR (BUY FLOW)
+                // -------------------------
                 if (_heldFromVendor)
                 {
-                    // Only allow buying into player/chest/gear (not back into vendor by clicking)
-                    // If they click vendor grid, treat as "put back"
+                    // If they click vendor grid while holding a vendor item, treat as "cancel/return"
                     if (isVendorGrid)
                     {
-                        ReturnHeldVendorItemToVendor(); // you already have this (or equivalent)
-                        return true;
-                    }
-
-                    // Must afford
-                    int price = Mathf.Max(0, _heldItem.def != null ? _heldItem.def.price : 0);
-                    if (_gold < price)
-                    {
-                        // Not enough gold -> return to vendor
                         ReturnHeldVendorItemToVendor();
                         return true;
                     }
 
-                    // Try place into clicked grid
+                    // We only allow buying into non-vendor grids (player/chest)
+                    if (_heldItem.def == null)
+                        return true;
+
+                    int unitBuyPrice = Mathf.Max(0, _heldItem.def.price);
+
+                    // 1) MERGE into existing stack if possible
+                    if (grid.Model.TryGetPlacementAt(cell, out _, out _, out var targetItem) &&
+                        targetItem != null &&
+                        _heldItem.def.stackable &&
+                        targetItem.def == _heldItem.def)
+                    {
+                        int space = Mathf.Max(0, _heldItem.def.stackMax - targetItem.amount);
+
+                        if (space > 0)
+                        {
+                            int move = Mathf.Min(space, _heldItem.amount);
+                            int cost = move * unitBuyPrice;
+
+                            if (!SpendGold(cost))
+                            {
+                                // Not enough gold: keep holding, do nothing else
+                                return true;
+                            }
+
+                            targetItem.amount += move;
+                            _heldItem.amount -= move;
+
+                            grid.RedrawItems();
+
+                            if (vendorOpen)
+                                vendorWindowView.RefreshActiveTab();
+
+                            if (_heldItem.amount <= 0)
+                            {
+                                ClearHeldItem();
+                            }
+                            else
+                            {
+                                // still holding remainder
+                                ShowGhostForHeldItem(_heldItem, grid);
+                                UpdateGhostValidityTint();
+                            }
+
+                            return true;
+                        }
+
+                        // stack full -> fall through to placement attempt (will likely fail)
+                    }
+
+                    // 2) PLACE into empty area
                     if (grid.Model.TryPlace(_heldItem, cell, out _))
                     {
-                        if (!SpendGold(price))
+                        int cost = _heldItem.amount * unitBuyPrice;
+
+                        // Safety: if somehow gold fails, undo and return to vendor
+                        if (!SpendGold(cost))
                         {
-                            // Shouldn't happen because you checked _gold earlier, but keeps it bulletproof.
-                            // Undo the placement by picking it back up and returning it to vendor.
+                            // Undo placement
                             grid.Model.TryPickUpAt(cell, out _, out _);
                             grid.RedrawItems();
+
                             ReturnHeldVendorItemToVendor();
                             return true;
                         }
 
                         grid.RedrawItems();
+
+                        if (vendorOpen)
+                            vendorWindowView.RefreshActiveTab();
+
                         ClearHeldItem();
                     }
 
                     return true;
                 }
 
-                // -----------------------------------------
-                // SELLING: vendor open + clicking vendor grid with a non-vendor held item
-                // Sell ONE if stackable, return remainder
-                // -----------------------------------------
+                // -------------------------
+                // CASE B) Holding from PLAYER/CHEST and dropping onto VENDOR (SELL FLOW)
+                // sell ONLY ONE unit, rest returns
+                // -------------------------
                 if (isVendorGrid)
                 {
-                    bool isStack = _heldItem.def != null && _heldItem.def.stackable && _heldItem.amount > 1;
-
-                    // We sell exactly 1 unit if stackable, otherwise sell the whole item (amount=1 anyway)
-                    ItemInstance sold = _heldItem;
-                    if (isStack)
-                    {
-                        sold = new ItemInstance(_heldItem.def, 1)
-                        {
-                            rotated90CCW = false
-                        };
-                    }
-
-                    // 1) If clicking on same stack in vendor, merge into it first
-                    if (grid.Model.TryGetPlacementAt(cell, out _, out _, out var target) &&
-                        target != null &&
-                        sold.def != null &&
-                        sold.def.stackable &&
-                        target.def == sold.def &&
-                        target.amount < sold.def.stackMax)
-                    {
-                        target.amount += 1;
-                        grid.RedrawItems();
-
-                        AddGold(GetSellValuePerUnit(sold.def));
-
-                        if (isStack)
-                        {
-                            // return remainder to source
-                            _heldItem.amount -= 1;
-                            ReturnRemainderToPickupOriginOrKeepInHand();
-                        }
-                        else
-                        {
-                            ClearHeldItem();
-                        }
-
-                        return true;
-                    }
-
-                    // 2) Otherwise place the sold item into vendor grid at that cell
-                    if (!grid.Model.CanPlace(sold, cell))
+                    if (_heldItem.def == null)
                         return true;
 
-                    // If we are selling from a stack, we must return remainder before finalizing sale
-                    if (isStack)
-                    {
-                        // Create remainder
-                        _heldItem.amount -= 1;
+                    int unitSellPrice = Mathf.Max(0, _heldItem.def.price); // change later to buyback rate if you want
 
-                        bool okReturn = ReturnRemainderToPickupOriginOrKeepInHand();
-                        if (!okReturn)
+                    // We will sell exactly one unit
+                    bool isStack = _heldItem.def.stackable && _heldItem.amount > 1;
+
+                    // Item to sell
+                    ItemInstance sellOne = isStack
+                        ? new ItemInstance(_heldItem.def, 1)
+                        : _heldItem;
+
+                    // Try merge into existing vendor stack first
+                    if (grid.Model.TryGetPlacementAt(cell, out _, out _, out var targetItem) &&
+                        targetItem != null &&
+                        sellOne.def.stackable &&
+                        targetItem.def == sellOne.def)
+                    {
+                        int space = Mathf.Max(0, sellOne.def.stackMax - targetItem.amount);
+                        if (space > 0)
                         {
-                            // couldn't return remainder safely -> cancel selling
-                            _heldItem.amount += 1; // rollback
+                            targetItem.amount += 1;
+                            AddGold(unitSellPrice);
+
+                            // Return remainder back to source if this was a stack
+                            if (isStack)
+                            {
+                                _heldItem.amount -= 1;
+                                _heldItem.rotated90CCW = _heldRotationAtPickup;
+
+                                bool placedBack = false;
+
+                                if (_heldFrom != null && _heldHasOrigin)
+                                    placedBack = _heldFrom.Model.TryPlace(_heldItem, _heldOrigin, out _);
+
+                                if (!placedBack && _heldFrom != null &&
+                                    _heldFrom.Model.TryFindFirstFit(_heldItem, out var alt) &&
+                                    _heldFrom.Model.TryPlace(_heldItem, alt, out _))
+                                {
+                                    placedBack = true;
+                                }
+
+                                if (_heldFrom != null)
+                                    _heldFrom.RedrawItems();
+
+                                // If we couldn't return remainder, keep it in hand (never delete items)
+                                if (!placedBack)
+                                {
+                                    ShowGhostForHeldItem(_heldItem, grid);
+                                    UpdateGhostValidityTint();
+                                    grid.RedrawItems();
+                                    if (vendorOpen) vendorWindowView.RefreshActiveTab();
+                                    return true;
+                                }
+
+                                ClearHeldItem();
+                            }
+                            else
+                            {
+                                // sold whole item
+                                ClearHeldItem();
+                            }
+
+                            grid.RedrawItems();
+                            if (vendorOpen) vendorWindowView.RefreshActiveTab();
                             return true;
                         }
                     }
 
-                    if (grid.Model.TryPlace(sold, cell, out _))
+                    // Otherwise: place the sold-one at the CLICKED cell first
+                    if (grid.Model.TryPlace(sellOne, cell, out _))
                     {
-                        AddGold(GetSellValuePerUnit(sold.def));
-                        grid.RedrawItems();
+                        AddGold(unitSellPrice);
 
-                        if (!isStack)
+                        // Return remainder back to source if stack
+                        if (isStack)
+                        {
+                            _heldItem.amount -= 1;
+                            _heldItem.rotated90CCW = _heldRotationAtPickup;
+
+                            bool placedBack = false;
+
+                            if (_heldFrom != null && _heldHasOrigin)
+                                placedBack = _heldFrom.Model.TryPlace(_heldItem, _heldOrigin, out _);
+
+                            if (!placedBack && _heldFrom != null &&
+                                _heldFrom.Model.TryFindFirstFit(_heldItem, out var alt) &&
+                                _heldFrom.Model.TryPlace(_heldItem, alt, out _))
+                            {
+                                placedBack = true;
+                            }
+
+                            if (_heldFrom != null)
+                                _heldFrom.RedrawItems();
+
+                            if (!placedBack)
+                            {
+                                // keep remainder in hand
+                                ShowGhostForHeldItem(_heldItem, grid);
+                                UpdateGhostValidityTint();
+                                grid.RedrawItems();
+                                if (vendorOpen) vendorWindowView.RefreshActiveTab();
+                                return true;
+                            }
+
                             ClearHeldItem();
+                        }
                         else
-                            ClearHeldItem(); // remainder already returned
+                        {
+                            ClearHeldItem();
+                        }
+
+                        grid.RedrawItems();
+                        if (vendorOpen) vendorWindowView.RefreshActiveTab();
+                        return true;
                     }
+
 
                     return true;
                 }
 
-                // -----------------------------------------
-                // Normal placement into player/chest grid
-                // Merge stacks if clicked on same item stack
-                // -----------------------------------------
-                if (grid.Model.TryGetPlacementAt(cell, out _, out _, out var targetItem) &&
-                    targetItem != null &&
+                // -------------------------
+                // CASE C) Normal grid-to-grid move (player <-> chest)
+                // -------------------------
+
+                // Merge if possible
+                if (grid.Model.TryGetPlacementAt(cell, out _, out _, out var target) &&
+                    target != null &&
                     _heldItem.def != null &&
                     _heldItem.def.stackable &&
-                    targetItem.def == _heldItem.def)
+                    target.def == _heldItem.def)
                 {
-                    int space = Mathf.Max(0, _heldItem.def.stackMax - targetItem.amount);
+                    int space = Mathf.Max(0, _heldItem.def.stackMax - target.amount);
                     if (space > 0)
                     {
                         int move = Mathf.Min(space, _heldItem.amount);
-                        targetItem.amount += move;
+                        target.amount += move;
                         _heldItem.amount -= move;
 
                         grid.RedrawItems();
 
                         if (_heldItem.amount <= 0)
                             ClearHeldItem();
+                        else
+                        {
+                            ShowGhostForHeldItem(_heldItem, grid);
+                            UpdateGhostValidityTint();
+                        }
 
                         return true;
                     }
                 }
 
+                // Place into empty space
                 if (grid.Model.TryPlace(_heldItem, cell, out _))
                 {
                     grid.RedrawItems();
@@ -714,21 +797,63 @@ namespace InventorySystem
                 return true;
             }
 
-            // ------------------------------------------------------------
-            // EMPTY HAND -> pick up
-            // ------------------------------------------------------------
+            // --------------------------------------------------------------------
+            // NOT HOLDING -> PICK UP
+            // --------------------------------------------------------------------
+
+            // Pick from vendor grid
+            // Pick from vendor grid
             if (isVendorGrid)
             {
-                // Vendor pickup: take ONLY 1 from a stack (or whole if non-stackable)
-                if (grid.Model.TryTakeAmountAt(cell, 1, out var picked, out var origin))
+                // Look at what's in this cell WITHOUT removing it yet
+                if (!grid.Model.TryGetPlacementAt(cell, out var origin, out _, out var targetItem) ||
+                    targetItem == null || targetItem.def == null)
+                    return true;
+
+                // If it's a stack, take ONLY ONE and reduce vendor stack in-place
+                if (targetItem.def.stackable && targetItem.amount > 1)
+                {
+                    // Take one
+                    _heldItem = new ItemInstance(targetItem.def, 1);
+                    _heldItem.rotated90CCW = false; // vendor items default orientation (your policy)
+
+                    // Reduce vendor stack
+                    targetItem.amount -= 1;
+
+                    // Vendor source info for ESC return (we return 1 unit)
+                    _heldFromVendor = true;
+                    _heldVendor = _openVendor;
+                    _heldVendorTabIndex = vendorWindowView.ActiveTabIndex;
+                    _heldVendorOrigin = origin;
+                    _heldVendorHasOrigin = true;
+
+                    // Not from a normal grid
+                    _heldFrom = null;
+                    _heldHasOrigin = false;
+                    _heldOrigin = default;
+                    _heldRotationAtPickup = false;
+
+                    grid.RedrawItems();
+                    ShowGhostForHeldItem(_heldItem, grid);
+                    UpdateGhostValidityTint();
+                    return true;
+                }
+
+                // Otherwise (non-stack or amount==1): remove the placement as before
+                if (grid.Model.TryPickUpAt(cell, out var picked, out var pickedOrigin))
                 {
                     _heldItem = picked;
-                    _heldFrom = grid; // remember vendor grid as source
-                    _heldFromVendor = true;
 
-                    _heldOrigin = origin;
-                    _heldHasOrigin = true;
-                    _heldRotationAtPickup = _heldItem != null && _heldItem.rotated90CCW;
+                    _heldFromVendor = true;
+                    _heldVendor = _openVendor;
+                    _heldVendorTabIndex = vendorWindowView.ActiveTabIndex;
+                    _heldVendorOrigin = pickedOrigin;
+                    _heldVendorHasOrigin = true;
+
+                    _heldFrom = null;
+                    _heldHasOrigin = false;
+                    _heldOrigin = default;
+                    _heldRotationAtPickup = false;
 
                     grid.RedrawItems();
                     ShowGhostForHeldItem(_heldItem, grid);
@@ -738,16 +863,23 @@ namespace InventorySystem
                 return true;
             }
 
-            // Normal grid pickup (player/chest): whole placement
-            if (grid.Model.TryPickUpAt(cell, out var pickedWhole, out var originWhole))
-            {
-                _heldItem = pickedWhole;
-                _heldFrom = grid;
-                _heldFromVendor = false;
 
-                _heldOrigin = originWhole;
+            // Pick from normal grid
+            if (grid.Model.TryPickUpAt(cell, out var pickedNormal, out var originNormal))
+            {
+                _heldItem = pickedNormal;
+                _heldFrom = grid;
+
+                _heldOrigin = originNormal;
                 _heldHasOrigin = true;
                 _heldRotationAtPickup = _heldItem != null && _heldItem.rotated90CCW;
+
+                // not from vendor
+                _heldFromVendor = false;
+                _heldVendor = null;
+                _heldVendorTabIndex = 0;
+                _heldVendorHasOrigin = false;
+                _heldVendorOrigin = default;
 
                 grid.RedrawItems();
                 ShowGhostForHeldItem(_heldItem, grid);
@@ -756,6 +888,7 @@ namespace InventorySystem
 
             return true;
         }
+
 
 
         // --------------------------------------------------------------------
@@ -852,25 +985,8 @@ namespace InventorySystem
 
         }
 
-        public bool CanAfford(int cost)
-        {
-            if (cost <= 0) return true;
-            return _gold >= cost;
-        }
-
-        public bool TrySpendGold(int cost)
-        {
-            if (cost <= 0) return true;
-            if (_gold < cost) return false;
-
-            _gold -= cost;
-
-            if (goldView != null)
-                goldView.SetGold(_gold);
-
-            Debug.Log($"Gold: -{cost} (Total {_gold})");
-            return true;
-        }
+        
+        
 
         private void ClearVendorHoldState()
         {
@@ -879,40 +995,11 @@ namespace InventorySystem
             _heldVendorTabIndex = 0;
             _heldVendorOrigin = default;
             _heldVendorHasOrigin = false;
-            _heldVendorRotationAtPickup = false;
+            //_heldVendorRotationAtPickup = false;
             _heldVendorPrice = 0;
         }
 
-        private void ReturnHeldVendorItemToVendor()
-        {
-            if (!_heldFromVendor || _heldItem == null || _heldVendor == null)
-                return;
-
-            var model = _heldVendor.GetTabModel(_heldVendorTabIndex);
-            if (model == null)
-            {
-                Debug.LogWarning("Vendor model missing when returning item.");
-                return;
-            }
-
-            // Restore rotation that it had in vendor
-            _heldItem.rotated90CCW = _heldVendorRotationAtPickup;
-
-            bool placed = false;
-
-            if (_heldVendorHasOrigin)
-                placed = model.TryPlace(_heldItem, _heldVendorOrigin, out _);
-
-            if (!placed && model.TryFindFirstFit(_heldItem, out var alt))
-                placed = model.TryPlace(_heldItem, alt, out _);
-
-            if (!placed)
-                Debug.LogWarning("Could not return vendor item back to vendor grid (grid full?).");
-
-            // Refresh vendor UI if open
-            if (vendorWindowView != null)
-                vendorWindowView.RefreshActiveTab();
-        }
+        
 
         private int GetSellValue(ItemInstance item)
         {
@@ -985,6 +1072,73 @@ namespace InventorySystem
             // 2) Otherwise: normal placement validity
             return grid.Model.CanPlace(_heldItem, cell);
         }
+
+        private void ReturnHeldVendorItemToVendor()
+        {
+            if (!_heldFromVendor || _heldItem == null || _heldVendor == null)
+            {
+                ClearHeldItem();
+                return;
+            }
+
+            var model = _heldVendor.GetTabModel(_heldVendorTabIndex);
+            if (model == null)
+            {
+                ClearHeldItem();
+                return;
+            }
+
+            // Try to put back exactly where it came from first
+            bool placed = false;
+
+            if (_heldVendorHasOrigin)
+                placed = model.TryPlace(_heldItem, _heldVendorOrigin, out _);
+
+            // Fallback: anywhere in vendor grid
+            if (!placed && model.TryFindFirstFit(_heldItem, out var alt))
+                placed = model.TryPlace(_heldItem, alt, out _);
+
+            // If still not placed, keep it in hand (never delete items)
+            if (!placed)
+                return;
+
+            // Refresh vendor UI if it’s still open
+            if (vendorWindowView != null && vendorWindowView.IsOpen)
+                vendorWindowView.RefreshActiveTab(); // add this method or call BindModel again
+
+            ClearHeldItem();
+        }
+
+        private void CancelHeldItemToSource()
+        {
+            if (_heldItem == null)
+                return;
+
+            // If item came from vendor, return it to vendor
+            if (_heldFromVendor)
+            {
+                ReturnHeldVendorItemToVendor();
+                return;
+            }
+
+            // If it came from a grid, return it there
+            if (_heldFrom != null)
+            {
+                if (_heldFrom.Model.TryFindFirstFit(_heldItem, out var o) &&
+                    _heldFrom.Model.TryPlace(_heldItem, o, out _))
+                {
+                    _heldFrom.RedrawItems();
+                }
+
+                ClearHeldItem();
+                return;
+            }
+
+            // Came from gear (or unknown): for now just clear
+            ClearHeldItem();
+        }
+
+        
 
     }
 }
