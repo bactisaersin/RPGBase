@@ -874,26 +874,57 @@ namespace InventorySystem
             }
 
 
-            // Pick from normal grid
-            if (grid.Model.TryPickUpAt(cell, out var pickedNormal, out var originNormal))
+            // Pick from normal grid (player/chest) - ALWAYS take 1 from stack
+            if (!isVendorGrid)
             {
-                _heldItem = pickedNormal;
-                _heldFrom = grid;
+                // Look at what's in this cell WITHOUT removing it yet
+                if (!grid.Model.TryGetPlacementAt(cell, out var originNormal, out _, out var targetItem) ||
+                    targetItem == null || targetItem.def == null)
+                    return true;
 
-                _heldOrigin = originNormal;
-                _heldHasOrigin = true;
-                _heldRotationAtPickup = _heldItem != null && _heldItem.rotated90CCW;
+                // If it's a stack, take ONLY ONE and reduce the stack in-place
+                if (targetItem.def.stackable && targetItem.amount > 1)
+                {
+                    _heldItem = new ItemInstance(targetItem.def, 1);
+                    _heldItem.rotated90CCW = targetItem.rotated90CCW; // keep same orientation as the stack
 
-                // not from vendor
-                _heldFromVendor = false;
-                _heldVendor = null;
-                _heldVendorTabIndex = 0;
-                _heldVendorHasOrigin = false;
-                _heldVendorOrigin = default;
+                    targetItem.amount -= 1;
 
-                grid.RedrawItems();
-                ShowGhostForHeldItem(_heldItem, grid);
-                UpdateGhostValidityTint();
+                    _heldFrom = grid;
+
+                    // For "return to origin" logic, we return 1 unit only
+                    _heldOrigin = originNormal;
+                    _heldHasOrigin = true;
+                    _heldRotationAtPickup = _heldItem.rotated90CCW;
+
+                    // not from vendor
+                    ClearVendorHoldState();
+
+                    grid.RedrawItems();
+                    ShowGhostForHeldItem(_heldItem, grid);
+                    UpdateGhostValidityTint();
+                    return true;
+                }
+
+                // Otherwise (non-stack or amount==1): remove the placement as before
+                if (grid.Model.TryPickUpAt(cell, out var pickedNormal, out var pickedOrigin))
+                {
+                    _heldItem = pickedNormal;
+                    _heldFrom = grid;
+
+                    _heldOrigin = pickedOrigin;
+                    _heldHasOrigin = true;
+                    _heldRotationAtPickup = _heldItem != null && _heldItem.rotated90CCW;
+
+                    // not from vendor
+                    ClearVendorHoldState();
+
+                    grid.RedrawItems();
+                    ShowGhostForHeldItem(_heldItem, grid);
+                    UpdateGhostValidityTint();
+                }
+
+                return true;
             }
 
             return true;
