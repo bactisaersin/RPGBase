@@ -636,7 +636,8 @@ namespace InventorySystem
                     if (_heldItem.def == null)
                         return true;
 
-                    int unitSellPrice = Mathf.Max(0, _heldItem.def.price); // change later to buyback rate if you want
+                    int unitSellPrice = GetSellValuePerUnit(_heldItem.def);
+
 
                     // We will sell exactly one unit
                     bool isStack = _heldItem.def.stackable && _heldItem.amount > 1;
