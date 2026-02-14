@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7338dcf90cae4ff419683ff847109e7b, type: 3}
-  m_Name: VendorCatalog_Blacksmith
+  m_Name: Vendor_Model1
   m_EditorClassIdentifier: 
   tabs:
   - tabName: Weapons

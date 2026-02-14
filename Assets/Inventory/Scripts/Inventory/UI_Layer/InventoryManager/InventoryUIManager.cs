@@ -17,6 +17,10 @@ namespace InventorySystem
         [SerializeField] private ChestWindowView chestWindowView;
         [SerializeField] private InventoryGridUI chestGrid;   // InventoryGridUI on SlotsGrid
 
+        [Header("Vendor UI")]
+        [SerializeField] private InventoryWindowController windows;
+        [SerializeField] private VendorWindowView vendorWindowView;
+
         [Header("Cursor Ghost")]
         [SerializeField] private RectTransform cursorLayer;     // UI layer under Canvas (stretched full screen)
         [SerializeField] private GameObject ghostIconPrefab;    // Prefab with child "itemIcon" (Image)
@@ -32,9 +36,7 @@ namespace InventorySystem
 
         [SerializeField] private int startingGold = 0;
 
-        [Header("Vendor UI")]
-        [SerializeField] private InventoryWindowController windows;
-        [SerializeField] private VendorWindowView vendorWindowView;
+        
         private WorldVendor _openVendor;
 
 
